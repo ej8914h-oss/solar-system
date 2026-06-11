@@ -3,730 +3,670 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>ORRERY — 태양계 시뮬레이터 (멀티플레이)</title>
+<title>ORRERY — Deep Space</title>
 <style>
-  /* =========================================================
-     디자인 토큰 (Universe Sandbox / Space Engine 영감)
-     딥스페이스 팔레트 + 글래스모피즘 + 모노스페이스 텔레메트리
-     ========================================================= */
-  :root {
-    --bg-void:#04050a; --bg-nebula:#0a1024;
-    --glass:rgba(14,22,44,0.55); --glass-strong:rgba(10,16,34,0.82);
-    --stroke:rgba(120,180,255,0.18); --stroke-hot:rgba(120,200,255,0.55);
-    --text:#dfe9ff; --text-dim:#8aa0c8;
-    --accent:#5ad6e0; --accent-2:#9b7bff; --sun:#ffcf6e; --danger:#ff6b6b;
-    --ok:#7cff9b;
+  :root{
+    --void:#02030a; --glass:rgba(10,16,32,0.5); --glass-2:rgba(8,12,26,0.72);
+    --stroke:rgba(120,180,255,0.16); --stroke-hot:rgba(120,200,255,0.5);
+    --text:#dfe9ff; --dim:#7e93bd; --accent:#5ad6e0; --accent-2:#9b7bff;
+    --ok:#7cff9b; --danger:#ff6b6b; --warn:#ffb454;
     --mono:"SF Mono","JetBrains Mono","Cascadia Code","Consolas",ui-monospace,monospace;
     --sans:"Inter","SF Pro Display",system-ui,-apple-system,"Segoe UI",sans-serif;
   }
-  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html,body { width:100%; height:100%; overflow:hidden; background:var(--bg-void); color:var(--text); font-family:var(--sans); user-select:none; }
-  #stage { position:fixed; inset:0; display:block; cursor:grab; }
-  #stage:active { cursor:grabbing; }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--void);color:var(--text);font-family:var(--sans);user-select:none;}
+  #stage{position:fixed;inset:0;display:block;cursor:grab;}
+  #stage:active{cursor:grabbing;}
 
-  .glass {
-    background:var(--glass);
-    backdrop-filter:blur(18px) saturate(140%); -webkit-backdrop-filter:blur(18px) saturate(140%);
-    border:1px solid var(--stroke); border-radius:16px;
-    box-shadow:0 12px 40px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06);
-  }
+  .glass{background:var(--glass);backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%);
+    border:1px solid var(--stroke);box-shadow:0 10px 36px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.05);}
 
-  /* ---------- 상단 시간 제어 바 ---------- */
-  #topbar { position:fixed; top:14px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:6px; padding:8px 10px; z-index:20; }
-  #topbar .brand { display:flex; flex-direction:column; line-height:1; margin:0 12px 0 6px; }
-  #topbar .brand b { font-size:14px; letter-spacing:3px; font-weight:700; }
-  #topbar .brand span { font-family:var(--mono); font-size:9px; color:var(--text-dim); letter-spacing:1px; margin-top:3px; }
-  .tbtn { font-family:var(--mono); font-size:12px; color:var(--text); background:rgba(255,255,255,0.04); border:1px solid var(--stroke); padding:9px 12px; border-radius:10px; cursor:pointer; transition:all .15s ease; white-space:nowrap; }
-  .tbtn:hover { border-color:var(--stroke-hot); background:rgba(90,214,224,0.10); }
-  .tbtn.active { background:linear-gradient(180deg,rgba(90,214,224,0.28),rgba(90,214,224,0.10)); border-color:var(--accent); color:#eafdff; box-shadow:0 0 14px rgba(90,214,224,0.35); }
-  .tbtn.pause.active { background:linear-gradient(180deg,rgba(255,107,107,.28),rgba(255,107,107,.08)); border-color:var(--danger); box-shadow:0 0 14px rgba(255,107,107,.3); }
-  .sep { width:1px; height:26px; background:var(--stroke); margin:0 4px; }
+  /* ---------- 상단 HUD: 시간 ---------- */
+  #top{position:fixed;top:12px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:5px;padding:6px 8px;border-radius:13px;z-index:30;}
+  #top .bd{display:flex;flex-direction:column;line-height:1;margin:0 10px 0 4px;}
+  #top .bd b{font-size:12px;letter-spacing:3px;font-weight:700;}
+  #top .bd span{font-family:var(--mono);font-size:8px;color:var(--dim);letter-spacing:1px;margin-top:3px;}
+  .tb{font-family:var(--mono);font-size:11px;color:var(--text);background:rgba(255,255,255,0.03);border:1px solid var(--stroke);padding:7px 10px;border-radius:9px;cursor:pointer;transition:.14s;white-space:nowrap;}
+  .tb:hover{border-color:var(--stroke-hot);background:rgba(90,214,224,0.1);}
+  .tb.active{background:linear-gradient(180deg,rgba(90,214,224,.26),rgba(90,214,224,.08));border-color:var(--accent);color:#eafdff;box-shadow:0 0 12px rgba(90,214,224,.3);}
+  .tb.pause.active{background:linear-gradient(180deg,rgba(255,107,107,.26),rgba(255,107,107,.06));border-color:var(--danger);box-shadow:0 0 12px rgba(255,107,107,.25);}
+  .vline{width:1px;height:22px;background:var(--stroke);margin:0 3px;}
 
-  /* ---------- 멀티플레이 패널 (좌측 상단) ---------- */
-  #mp { position:fixed; top:14px; left:14px; width:236px; max-width:calc(100vw - 28px); z-index:19; overflow:hidden; }
-  .mp-head { display:flex; align-items:center; gap:8px; padding:12px 14px; cursor:pointer; }
-  .mp-head b { font-size:13px; letter-spacing:1px; }
-  .mp-head .mp-status { margin-left:auto; font-family:var(--mono); font-size:10px; color:var(--text-dim); }
-  .mp-head .chev { font-size:10px; color:var(--text-dim); transition:transform .2s; }
-  #mp.collapsed .chev { transform:rotate(-90deg); }
-  #mp.collapsed .mp-body { display:none; }
-  .dot { width:9px; height:9px; border-radius:50%; background:var(--danger); box-shadow:0 0 8px currentColor; color:var(--danger); }
-  .dot.connecting { background:var(--sun); color:var(--sun); animation:blink 1s infinite; }
-  .dot.on { background:var(--ok); color:var(--ok); }
-  .mp-body { padding:0 14px 14px; }
-  .mp-body label { display:block; font-size:10px; color:var(--text-dim); letter-spacing:1px; text-transform:uppercase; margin-bottom:10px; }
-  .mp-body input { width:100%; margin-top:5px; font-family:var(--mono); font-size:12px; color:var(--text); background:rgba(0,0,0,0.25); border:1px solid var(--stroke); border-radius:9px; padding:8px 10px; outline:none; }
-  .mp-body input:focus { border-color:var(--accent); }
-  #mpConnect { width:100%; text-align:center; padding:10px; }
-  #mpConnect.on { border-color:var(--danger); color:#ffd6d6; background:rgba(255,107,107,.12); }
-  .mp-adv { margin-top:10px; }
-  .mp-adv summary { font-size:10px; color:var(--text-dim); cursor:pointer; letter-spacing:1px; }
-  .mp-roster { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
-  .chip { display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:11px; padding:4px 9px; border-radius:999px; background:rgba(255,255,255,0.05); border:1px solid var(--stroke); }
-  .chip .cd { width:8px; height:8px; border-radius:50%; box-shadow:0 0 6px currentColor; }
-  .mp-note { margin-top:10px; font-size:10px; line-height:1.5; color:var(--text-dim); }
+  /* ---------- 좌측 멀티플레이: 접이식 사이드바 ---------- */
+  #mp{position:fixed;top:0;left:0;height:100%;z-index:28;display:flex;align-items:stretch;}
+  #mpTab{width:42px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;cursor:pointer;
+    border-right:1px solid var(--stroke);background:var(--glass);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);transition:.2s;}
+  #mpTab:hover{background:rgba(90,214,224,0.08);}
+  #mpTab .vtxt{writing-mode:vertical-rl;font-family:var(--mono);font-size:10px;letter-spacing:3px;color:var(--dim);}
+  #mpTab .dot{width:9px;height:9px;border-radius:50%;background:var(--danger);box-shadow:0 0 8px currentColor;color:var(--danger);}
+  #mpTab .dot.connecting{background:var(--warn);color:var(--warn);animation:blink 1s infinite;}
+  #mpTab .dot.on{background:var(--ok);color:var(--ok);}
+  #mpPanel{width:0;overflow:hidden;transition:width .28s cubic-bezier(.2,.8,.2,1);background:var(--glass-2);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-right:1px solid var(--stroke);}
+  #mp.open #mpPanel{width:238px;}
+  .mp-inner{width:238px;padding:18px 16px;}
+  .mp-inner h3{font-size:13px;letter-spacing:1px;margin-bottom:14px;color:var(--text);}
+  .mp-inner label{display:block;font-size:9px;color:var(--dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;}
+  .mp-inner input{width:100%;margin-top:5px;font-family:var(--mono);font-size:12px;color:var(--text);background:rgba(0,0,0,.28);border:1px solid var(--stroke);border-radius:8px;padding:8px 10px;outline:none;}
+  .mp-inner input:focus{border-color:var(--accent);}
+  #mpConnect{width:100%;text-align:center;padding:10px;}
+  #mpConnect.on{border-color:var(--danger);color:#ffd6d6;background:rgba(255,107,107,.12);}
+  .mp-adv{margin-top:10px;} .mp-adv summary{font-size:9px;color:var(--dim);cursor:pointer;letter-spacing:1px;}
+  .mp-roster{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;}
+  .chip{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;padding:4px 9px;border-radius:999px;background:rgba(255,255,255,.05);border:1px solid var(--stroke);}
+  .chip .cd{width:8px;height:8px;border-radius:50%;box-shadow:0 0 6px currentColor;}
+  .mp-note{margin-top:12px;font-size:10px;line-height:1.5;color:var(--dim);}
+  @keyframes blink{50%{opacity:.25;}}
 
-  /* ---------- 우측 행성 정보 ---------- */
-  #info { position:fixed; top:14px; right:14px; width:300px; max-width:calc(100vw - 28px); padding:18px; z-index:18; transform:translateX(120%); transition:transform .35s cubic-bezier(.2,.8,.2,1); }
-  #info.show { transform:translateX(0); }
-  #info .close { position:absolute; top:12px; right:12px; cursor:pointer; color:var(--text-dim); font-size:18px; line-height:1; }
-  #info .close:hover { color:var(--text); }
-  #info .swatch { width:44px; height:44px; border-radius:50%; margin-bottom:12px; box-shadow:0 0 22px currentColor; }
-  #info h2 { font-size:22px; letter-spacing:1px; margin-bottom:2px; }
-  #info .tag { font-family:var(--mono); font-size:10px; color:var(--accent); letter-spacing:2px; text-transform:uppercase; }
-  #info .desc { margin:14px 0; font-size:13px; line-height:1.6; color:var(--text-dim); }
-  .stat { display:flex; justify-content:space-between; align-items:baseline; padding:8px 0; border-bottom:1px dashed rgba(120,180,255,0.12); }
-  .stat:last-child { border-bottom:none; }
-  .stat .k { font-size:12px; color:var(--text-dim); }
-  .stat .v { font-family:var(--mono); font-size:13px; color:var(--text); }
+  /* ---------- 우측 정보: 슬라이드 패널 ---------- */
+  #info{position:fixed;top:50%;right:14px;transform:translate(120%,-50%);width:290px;max-width:calc(100vw - 28px);padding:20px;border-radius:16px;z-index:27;transition:transform .4s cubic-bezier(.2,.85,.25,1);}
+  #info.show{transform:translate(0,-50%);}
+  #info .x{position:absolute;top:14px;right:14px;cursor:pointer;color:var(--dim);font-size:17px;}
+  #info .x:hover{color:var(--text);}
+  #info .sw{width:48px;height:48px;border-radius:50%;margin-bottom:14px;box-shadow:0 0 26px currentColor;}
+  #info .tg{font-family:var(--mono);font-size:9px;color:var(--accent);letter-spacing:2px;text-transform:uppercase;}
+  #info h2{font-size:24px;letter-spacing:1px;margin:2px 0 0;opacity:0;transform:translateY(8px);}
+  #info.show h2{animation:nameIn .55s .12s forwards;}
+  @keyframes nameIn{to{opacity:1;transform:translateY(0);}}
+  #info .desc{margin:14px 0;font-size:12.5px;line-height:1.6;color:var(--dim);}
+  .st{display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px dashed rgba(120,180,255,.1);}
+  .st:last-child{border-bottom:none;}
+  .st .k{font-size:11.5px;color:var(--dim);} .st .v{font-family:var(--mono);font-size:12.5px;color:var(--text);}
 
-  /* ---------- 좌측 하단 텔레메트리 ---------- */
-  #telemetry { position:fixed; left:14px; bottom:14px; width:248px; max-width:calc(100vw - 28px); padding:14px 16px; z-index:16; font-family:var(--mono); }
-  #telemetry .title { font-size:10px; letter-spacing:2px; color:var(--accent); margin-bottom:10px; display:flex; align-items:center; gap:7px; }
-  #telemetry .title::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--accent); box-shadow:0 0 8px var(--accent); animation:blink 1.6s infinite; }
-  @keyframes blink { 50% { opacity:.25; } }
-  .tele-row { display:flex; justify-content:space-between; font-size:11px; padding:3px 0; }
-  .tele-row .lk { color:var(--text-dim); }
-  .tele-row .lv { color:var(--text); }
+  /* ---------- 좌하단 HUD ---------- */
+  #hud{position:fixed;left:54px;bottom:12px;padding:9px 13px;border-radius:11px;z-index:26;font-family:var(--mono);display:flex;gap:16px;align-items:center;}
+  #hud .h{display:flex;flex-direction:column;gap:2px;}
+  #hud .hk{font-size:8px;color:var(--dim);letter-spacing:1px;}
+  #hud .hv{font-size:12px;color:var(--text);}
+  #hud .live::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent);margin-right:5px;animation:blink 1.6s infinite;vertical-align:middle;}
 
-  /* ---------- 우측 하단 이벤트/옵션 ---------- */
-  #dock { position:fixed; right:14px; bottom:14px; z-index:16; display:flex; flex-direction:column; gap:8px; align-items:flex-end; }
-  .dock-group { display:flex; gap:6px; padding:8px; }
-  .ebtn { font-family:var(--mono); font-size:11px; color:var(--text); background:rgba(255,255,255,0.04); border:1px solid var(--stroke); padding:9px 11px; border-radius:10px; cursor:pointer; transition:all .15s ease; display:flex; flex-direction:column; align-items:center; gap:4px; min-width:56px; }
-  .ebtn:hover { border-color:var(--stroke-hot); background:rgba(155,123,255,0.12); }
-  .ebtn .ic { font-size:16px; }
-  .toggle.on { border-color:var(--accent); color:var(--accent); background:rgba(90,214,224,0.12); }
+  /* ---------- 우하단 도구 ---------- */
+  #dock{position:fixed;right:12px;bottom:12px;z-index:26;display:flex;flex-direction:column;gap:7px;align-items:flex-end;}
+  .dg{display:flex;gap:5px;padding:7px;border-radius:12px;}
+  .eb{font-family:var(--mono);font-size:10px;color:var(--text);background:rgba(255,255,255,.03);border:1px solid var(--stroke);padding:8px 9px;border-radius:9px;cursor:pointer;transition:.14s;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:50px;}
+  .eb:hover{border-color:var(--stroke-hot);background:rgba(155,123,255,.12);}
+  .eb .ic{font-size:15px;}
+  .tg2.on{border-color:var(--accent);color:var(--accent);background:rgba(90,214,224,.12);}
 
-  #hint { position:fixed; left:50%; bottom:16px; transform:translateX(-50%); font-family:var(--mono); font-size:11px; color:var(--text-dim); padding:8px 16px; z-index:14; pointer-events:none; text-align:center; transition:opacity .6s ease; }
+  #hint{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);font-family:var(--mono);font-size:10px;color:var(--dim);z-index:24;pointer-events:none;text-align:center;transition:opacity .6s;}
+  #banner{position:fixed;top:64px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:11px;letter-spacing:1px;padding:8px 16px;z-index:30;color:#eafdff;border:1px solid var(--accent);background:rgba(90,214,224,.14);border-radius:999px;display:none;align-items:center;gap:8px;}
+  #banner.show{display:flex;animation:bp 1.4s infinite;}
+  @keyframes bp{50%{box-shadow:0 0 18px rgba(90,214,224,.5);}}
 
-  #spawnBanner { position:fixed; top:78px; left:50%; transform:translateX(-50%); font-family:var(--mono); font-size:12px; letter-spacing:1px; padding:9px 18px; z-index:22; color:#eafdff; border:1px solid var(--accent); background:rgba(90,214,224,0.14); border-radius:999px; display:none; align-items:center; gap:8px; }
-  #spawnBanner.show { display:flex; animation:pulseB 1.4s infinite; }
-  @keyframes pulseB { 50% { box-shadow:0 0 18px rgba(90,214,224,.5); } }
+  /* 화면 가장자리 비네트 + 가까운 중력장 효과 */
+  #vignette{position:fixed;inset:0;pointer-events:none;z-index:23;box-shadow:inset 0 0 220px 40px rgba(0,0,0,.55);transition:box-shadow .4s;}
 
-  /* ---------- 반응형 ---------- */
-  @media (max-width:820px) {
-    #topbar { top:8px; gap:4px; padding:6px; flex-wrap:wrap; justify-content:center; max-width:calc(100vw - 16px); }
-    #topbar .brand { display:none; }
-    .tbtn { padding:8px 9px; font-size:11px; }
-    #mp { top:auto; bottom:auto; }
-    #telemetry { width:160px; padding:11px 12px; bottom:10px; left:10px; }
-    .tele-row { font-size:10px; }
-    #dock { right:10px; bottom:10px; }
-    .ebtn { min-width:46px; font-size:10px; padding:8px; }
-    #info { width:260px; }
-    #hint { display:none; }
-  }
-  @media (max-width:820px) {
-    #mp { left:10px; top:64px; width:200px; }
-    #mp.collapsed { width:auto; }
+  @media (max-width:820px){
+    #top{gap:3px;padding:5px;} #top .bd{display:none;} .tb{padding:6px 7px;font-size:10px;}
+    #info{width:250px;top:auto;bottom:64px;transform:translate(120%,0);} #info.show{transform:translate(0,0);}
+    #hud{left:50px;gap:11px;padding:7px 10px;} #hud .hide-m{display:none;}
+    .eb{min-width:42px;font-size:9px;padding:7px;} #hint{display:none;}
   }
 </style>
 </head>
 <body>
-
 <canvas id="stage"></canvas>
+<div id="vignette"></div>
 
-<!-- 상단: 시간 제어 -->
-<div id="topbar" class="glass">
-  <div class="brand"><b>ORRERY</b><span>SOLAR SIM · MP</span></div>
-  <button class="tbtn pause" data-speed="0">❚❚ 정지</button>
-  <div class="sep"></div>
-  <button class="tbtn active" data-speed="1">1×</button>
-  <button class="tbtn" data-speed="10">10×</button>
-  <button class="tbtn" data-speed="100">100×</button>
-  <button class="tbtn" data-speed="1000">1000×</button>
+<div id="top" class="glass">
+  <div class="bd"><b>ORRERY</b><span>DEEP SPACE</span></div>
+  <button class="tb pause" data-speed="0">❚❚</button>
+  <div class="vline"></div>
+  <button class="tb active" data-speed="1">1×</button>
+  <button class="tb" data-speed="10">10×</button>
+  <button class="tb" data-speed="100">100×</button>
+  <button class="tb" data-speed="1000">1000×</button>
 </div>
 
-<!-- 좌측 상단: 멀티플레이 -->
-<div id="mp" class="glass">
-  <div class="mp-head" id="mpHead">
-    <span class="dot" id="mpDot"></span><b>멀티플레이</b>
-    <span class="mp-status" id="mpStatus">오프라인</span>
-    <span class="chev" id="mpChev">▾</span>
-  </div>
-  <div class="mp-body">
+<!-- 멀티플레이 사이드바 -->
+<div id="mp">
+  <div id="mpTab"><span class="dot" id="mpDot"></span><span class="vtxt">MULTIPLAYER</span></div>
+  <div id="mpPanel"><div class="mp-inner">
+    <h3>멀티플레이</h3>
     <label>닉네임<input id="mpName" type="text" maxlength="14" /></label>
     <label>방 코드<input id="mpRoom" type="text" maxlength="20" /></label>
-    <button id="mpConnect" class="tbtn">접속</button>
-    <details class="mp-adv"><summary>고급 설정</summary>
-      <label style="margin-top:8px;">MQTT 브로커<input id="mpBroker" type="text" /></label>
-    </details>
+    <button id="mpConnect" class="tb">접속</button>
+    <details class="mp-adv"><summary>고급 설정</summary><label style="margin-top:8px;">MQTT 브로커<input id="mpBroker" type="text" /></label></details>
     <div class="mp-roster" id="mpRoster"></div>
-    <p class="mp-note">공개 테스트 브로커로 동작합니다. 같은 <b>방 코드</b>를 친구에게 알려주면 같은 우주에 접속합니다.</p>
-  </div>
+    <p class="mp-note">같은 <b>방 코드</b>를 친구에게 알려주면 같은 우주에 접속합니다. 공개 테스트 브로커 사용.</p>
+  </div></div>
 </div>
 
-<!-- 생성 모드 배너 -->
-<div id="spawnBanner"><span id="spawnText"></span> · 화면을 클릭/탭 하세요</div>
+<div id="banner"><span id="bannerTxt"></span> · 화면을 클릭/탭</div>
 
-<!-- 우측: 행성 정보 -->
 <aside id="info" class="glass">
-  <div class="close" id="infoClose">✕</div>
-  <div class="swatch" id="infoSwatch"></div>
-  <div class="tag" id="infoTag">PLANET</div>
-  <h2 id="infoName">—</h2>
-  <p class="desc" id="infoDesc"></p>
-  <div id="infoStats"></div>
+  <div class="x" id="infoX">✕</div>
+  <div class="sw" id="iSw"></div>
+  <div class="tg" id="iTag">PLANET</div>
+  <h2 id="iName">—</h2>
+  <p class="desc" id="iDesc"></p>
+  <div id="iStats"></div>
 </aside>
 
-<!-- 좌측 하단: 텔레메트리 -->
-<div id="telemetry" class="glass">
-  <div class="title">SIMULATION TELEMETRY</div>
-  <div class="tele-row"><span class="lk">TIME WARP</span><span class="lv" id="tWarp">1×</span></div>
-  <div class="tele-row"><span class="lk">TARGET</span><span class="lv" id="tTarget">SUN</span></div>
-  <div class="tele-row"><span class="lk">PLAYERS</span><span class="lv" id="tPlayers">1</span></div>
-  <div class="tele-row"><span class="lk">BODIES</span><span class="lv" id="tBodies">0</span></div>
-  <div class="tele-row"><span class="lk">ELAPSED</span><span class="lv" id="tElapsed">0d</span></div>
-  <div class="tele-row"><span class="lk">FPS</span><span class="lv" id="tFps">60</span></div>
+<div id="hud" class="glass">
+  <div class="h"><span class="hk">TIME</span><span class="hv" id="hWarp">1×</span></div>
+  <div class="h"><span class="hk">TARGET</span><span class="hv" id="hTarget">SUN</span></div>
+  <div class="h hide-m"><span class="hk">CREW</span><span class="hv" id="hCrew">1</span></div>
+  <div class="h hide-m"><span class="hk">ELAPSED</span><span class="hv" id="hElapsed">0d</span></div>
+  <div class="h"><span class="hk live">FPS</span><span class="hv" id="hFps">60</span></div>
 </div>
 
-<!-- 우측 하단: 이벤트/옵션 -->
 <div id="dock">
-  <div class="dock-group glass">
-    <button class="ebtn" id="spAst"><span class="ic">☄</span>소행성</button>
-    <button class="ebtn" id="spCom"><span class="ic">✦</span>혜성</button>
-    <button class="ebtn" id="spBh"><span class="ic">◉</span>블랙홀</button>
+  <div class="dg glass">
+    <button class="eb" id="spAst"><span class="ic">☄</span>소행성</button>
+    <button class="eb" id="spCom"><span class="ic">✦</span>혜성</button>
+    <button class="eb" id="spBh"><span class="ic">⬤</span>블랙홀</button>
+    <button class="eb" id="spSn"><span class="ic">✸</span>초신성</button>
   </div>
-  <div class="dock-group glass">
-    <button class="ebtn toggle on" id="tgOrbit"><span class="ic">◯</span>궤도</button>
-    <button class="ebtn toggle on" id="tgLabel"><span class="ic">A</span>이름</button>
-    <button class="ebtn" id="resetView"><span class="ic">⊹</span>리셋</button>
+  <div class="dg glass">
+    <button class="eb tg2 on" id="tgOrbit"><span class="ic">◯</span>궤도</button>
+    <button class="eb tg2 on" id="tgLabel"><span class="ic">A</span>이름</button>
+    <button class="eb" id="reset"><span class="ic">⊹</span>리셋</button>
   </div>
 </div>
 
-<div id="hint">휠: 확대/축소 · 드래그: 이동 · 클릭: 정보 · 더블클릭: 추적</div>
+<div id="hint">휠: 줌 · 드래그: 이동 · 클릭: 정보 · 더블클릭: 추적 · 좌측 탭: 멀티플레이</div>
 
-<!-- 멀티플레이용 MQTT 클라이언트 (실시간 동기화) -->
 <script src="https://unpkg.com/mqtt@5/dist/mqtt.min.js"></script>
 <script>
 "use strict";
 /* =========================================================================
-   ORRERY — 태양계 우주 시뮬레이터 (실시간 멀티플레이)
-   순수 HTML/CSS/JS · 렌더링 라이브러리 없음 · Canvas 2D
-   동기화: 공개 MQTT 브로커(WebSocket) 통해 브라우저끼리 직접 통신
-   구조: Star/Sun/Planet/Asteroid/Comet/BlackHole + Camera + Net + Simulation
+   ORRERY — Deep Space  ·  순수 HTML/CSS/JS · Canvas 2D
+   몰입 우선: 성운/패럴랙스 배경 · 살아있는 태양 · 렌즈/강착원반 블랙홀
    ========================================================================= */
-
-const TAU = Math.PI * 2;
-const rand = (a, b) => a + Math.random() * (b - a);
-const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-const now = () => performance.now();
-
-/* 플레이어 색상 팔레트 (id 해시로 결정) */
-const PALETTE = ["#5ad6e0","#9b7bff","#ff9bd0","#7cff9b","#ffd06b","#ff8f6b","#6bb8ff","#d06bff"];
+const TAU=Math.PI*2, rand=(a,b)=>a+Math.random()*(b-a), clamp=(v,a,b)=>Math.max(a,Math.min(b,v)), now=()=>performance.now();
+const lerp=(a,b,t)=>a+(b-a)*t;
+// 결정적 의사난수(값 노이즈용)
+function hash(x,y){ let h=Math.sin(x*127.1+y*311.7)*43758.5453; return h-Math.floor(h); }
+function vnoise(x,y){ const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi;
+  const tl=hash(xi,yi),tr=hash(xi+1,yi),bl=hash(xi,yi+1),br=hash(xi+1,yi+1);
+  const u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);
+  return lerp(lerp(tl,tr,u),lerp(bl,br,u),v); }
+const PALETTE=["#5ad6e0","#9b7bff","#ff9bd0","#7cff9b","#ffd06b","#ff8f6b","#6bb8ff","#d06bff"];
 function colorFor(id){ let h=0; for(const c of id) h=(h*31+c.charCodeAt(0))>>>0; return PALETTE[h%PALETTE.length]; }
 
-/* ============================ Star ============================ */
-class Star {
-  constructor(w, h){ this.x=rand(0,w); this.y=rand(0,h); this.size=rand(0.4,1.6); this.baseAlpha=rand(0.25,0.9); this.phase=rand(0,TAU); this.speed=rand(0.6,2.2); this.depth=rand(0.02,0.12); }
-  draw(ctx, t, camX, camY){
-    const tw=this.baseAlpha*(0.55+0.45*Math.sin(t*this.speed+this.phase));
-    ctx.globalAlpha=tw; ctx.fillStyle="#cfe2ff";
-    ctx.beginPath(); ctx.arc(this.x-camX*this.depth, this.y-camY*this.depth, this.size, 0, TAU); ctx.fill();
+/* ============================ Camera (관성 + 부드러운 줌) ============================ */
+class Camera{
+  constructor(){ this.x=0; this.y=0; this.zoom=0.55; this.tz=0.55; this.vx=0; this.vy=0; this.target=null; }
+  toScreen(wx,wy,cx,cy){ return {x:(wx-this.x)*this.zoom+cx, y:(wy-this.y)*this.zoom+cy}; }
+  toWorld(sx,sy,cx,cy){ return {x:(sx-cx)/this.zoom+this.x, y:(sy-cy)/this.zoom+this.y}; }
+  step(){
+    this.zoom=lerp(this.zoom,this.tz,0.16);                 // 부드러운 줌
+    if(this.target){ this.x=lerp(this.x,this.target.wx,0.09); this.y=lerp(this.y,this.target.wy,0.09); this.vx=this.vy=0; }
+    else { this.x+=this.vx; this.y+=this.vy; this.vx*=0.9; this.vy*=0.9; }  // 관성
   }
 }
 
-/* ============================ Camera ============================ */
-class Camera {
-  constructor(){ this.x=0; this.y=0; this.zoom=1; this.target=null; }
-  toScreen(wx, wy, cx, cy){ return { x:(wx-this.x)*this.zoom+cx, y:(wy-this.y)*this.zoom+cy }; }
-  toWorld(sx, sy, cx, cy){ return { x:(sx-cx)/this.zoom+this.x, y:(sy-cy)/this.zoom+this.y }; }
-  follow(){ if(this.target){ this.x+=(this.target.wx-this.x)*0.12; this.y+=(this.target.wy-this.y)*0.12; } }
-}
-
-/* ============================ Sun ============================ */
-class Sun {
-  constructor(){ this.wx=0; this.wy=0; this.radius=26; this.name="태양"; this.color="#ffcf6e"; this.type="STAR";
-    this.info={ radius:"696,340 km", dist:"—", period:"—", rotation:"약 25일 (적도)", moons:"8개 행성",
-      desc:"태양계 질량의 99.8%를 차지하는 G형 주계열성. 모든 행성이 그 중력에 묶여 공전합니다." }; }
-  draw(ctx, cam, cx, cy, t){
-    const s=cam.toScreen(this.wx,this.wy,cx,cy), r=this.radius*cam.zoom;
-    const glow=ctx.createRadialGradient(s.x,s.y,r*0.2,s.x,s.y,r*6);
-    glow.addColorStop(0,"rgba(255,210,120,0.55)"); glow.addColorStop(0.3,"rgba(255,150,60,0.18)"); glow.addColorStop(1,"rgba(255,120,40,0)");
-    ctx.globalAlpha=1; ctx.fillStyle=glow; ctx.beginPath(); ctx.arc(s.x,s.y,r*6,0,TAU); ctx.fill();
-    const pulse=1+0.04*Math.sin(t*2);
-    const core=ctx.createRadialGradient(s.x,s.y,0,s.x,s.y,r*pulse);
-    core.addColorStop(0,"#fff6df"); core.addColorStop(0.55,"#ffd06b"); core.addColorStop(1,"#ff9b3d");
-    ctx.fillStyle=core; ctx.beginPath(); ctx.arc(s.x,s.y,r*pulse,0,TAU); ctx.fill();
+/* ============================ Background (성운·패럴랙스·은하수) ============================ */
+class Background{
+  constructor(){ this.stars=[]; this.dust=[]; this.nebulae=[]; this.meteors=[]; this._next=rand(2,6); }
+  build(w,h){
+    // 3개 깊이 레이어: 가까움(빠름)·중간·아주 멈(느림)
+    this.stars=[];
+    const make=(n,depth,sz,al)=>{ for(let i=0;i<n;i++) this.stars.push({x:rand(-w,2*w),y:rand(-h,2*h),s:rand(sz[0],sz[1]),a:rand(al[0],al[1]),ph:rand(0,TAU),sp:rand(.4,2.2),depth,c:Math.random()<.15?"#bcd0ff":Math.random()<.15?"#ffe3c0":"#ffffff"}); };
+    const area=(w*h)/1200;
+    make(clamp(area*0.5,120,360),0.16,[0.6,1.7],[0.5,1]);   // 가까운 별
+    make(clamp(area*0.7,160,480),0.07,[0.4,1.1],[0.35,0.8]); // 중간
+    make(clamp(area*1.0,220,720),0.025,[0.3,0.8],[0.2,0.55]);// 아주 먼 별
+    // 먼지
+    this.dust=[]; for(let i=0;i<160;i++) this.dust.push({x:rand(-w,2*w),y:rand(-h,2*h),s:rand(.3,1.1),a:rand(.04,.16),depth:rand(.03,.12)});
+    // 성운 블롭 (큰 색 구름, 화면 가상좌표 + 강한 패럴랙스)
+    this.nebulae=[
+      {x:w*0.2,y:h*0.3,r:Math.max(w,h)*0.55,c:[80,40,150],a:0.16,depth:0.04},
+      {x:w*0.8,y:h*0.7,r:Math.max(w,h)*0.6, c:[20,90,140],a:0.14,depth:0.05},
+      {x:w*0.6,y:h*0.15,r:Math.max(w,h)*0.4,c:[150,40,90],a:0.10,depth:0.06},
+      {x:w*0.1,y:h*0.85,r:Math.max(w,h)*0.45,c:[40,60,160],a:0.11,depth:0.045},
+    ];
+    this.W=w; this.H=h;
   }
-}
-
-/* ============================ Planet ============================
-   동기화를 위해 위치를 "절대 경과일(elapsedDays)"의 함수로 계산.
-   모든 클라이언트가 동일한 elapsedDays를 공유하면 행성 위치가 일치한다. */
-class Planet {
-  constructor(cfg){
-    this.name=cfg.name; this.color=cfg.color; this.radius=cfg.radius; this.orbit=cfg.orbit;
-    this.periodDays=cfg.periodDays; this.angle0=cfg.angle0; this.angle=cfg.angle0;
-    this.hasRing=cfg.hasRing||false; this.type="PLANET"; this.info=cfg.info;
-    this.wx=this.orbit; this.wy=0;
-  }
-  update(elapsedDays){
-    this.angle=this.angle0+(TAU/this.periodDays)*elapsedDays;
-    this.wx=Math.cos(this.angle)*this.orbit; this.wy=Math.sin(this.angle)*this.orbit;
-  }
-  drawOrbit(ctx, cam, cx, cy){
-    const c=cam.toScreen(0,0,cx,cy);
-    ctx.strokeStyle="rgba(120,170,255,0.16)"; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.arc(c.x,c.y,this.orbit*cam.zoom,0,TAU); ctx.stroke();
-  }
-  draw(ctx, cam, cx, cy, selected, showLabel){
-    const s=cam.toScreen(this.wx,this.wy,cx,cy), r=Math.max(2,this.radius*cam.zoom);
-    if(this.hasRing) this._ring(ctx,s,r,true);
-    const sunDir=Math.atan2(-this.wy,-this.wx);
-    const lx=s.x+Math.cos(sunDir)*r*0.4, ly=s.y+Math.sin(sunDir)*r*0.4;
-    const g=ctx.createRadialGradient(lx,ly,r*0.1,s.x,s.y,r*1.15);
-    g.addColorStop(0,this._mix(this.color,255,0.35)); g.addColorStop(0.6,this.color); g.addColorStop(1,this._mix(this.color,0,0.6));
-    ctx.globalAlpha=1; ctx.fillStyle=g; ctx.beginPath(); ctx.arc(s.x,s.y,r,0,TAU); ctx.fill();
-    if(this.hasRing) this._ring(ctx,s,r,false);
-    if(selected){ ctx.strokeStyle="#5ad6e0"; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(s.x,s.y,r+6,0,TAU); ctx.stroke(); }
-    if(showLabel && cam.zoom>0.35){ ctx.globalAlpha=0.85; ctx.fillStyle="#cfe0ff"; ctx.font="11px ui-monospace,monospace"; ctx.textAlign="center"; ctx.fillText(this.name,s.x,s.y-r-8); ctx.textAlign="left"; }
-  }
-  _ring(ctx,s,r,behind){
-    ctx.save(); ctx.translate(s.x,s.y); ctx.scale(1,0.32); ctx.rotate(-0.35);
-    ctx.strokeStyle=behind?"rgba(220,200,160,0.35)":"rgba(240,225,180,0.7)"; ctx.lineWidth=Math.max(2,r*0.5);
-    ctx.beginPath(); behind?ctx.arc(0,0,r*2.0,Math.PI,TAU):ctx.arc(0,0,r*2.0,0,Math.PI); ctx.stroke(); ctx.restore();
-  }
-  _mix(hex,target,amt){ const c=hex.replace("#",""); const r=parseInt(c.substr(0,2),16),g=parseInt(c.substr(2,2),16),b=parseInt(c.substr(4,2),16); const m=v=>Math.round(v+(target-v)*amt); return `rgb(${m(r)},${m(g)},${m(b)})`; }
-}
-
-/* ============================ Asteroid ============================ */
-class Asteroid {
-  constructor(wx,wy){ this.wx=wx; this.wy=wy; this.vx=rand(-30,30); this.vy=rand(-30,30); this.radius=rand(1.5,3.5); this.color="#9a8c7a"; this.dead=false; this.spin=rand(0,TAU); this.kind="asteroid"; }
-  update(dtDays){ this.wx+=this.vx*dtDays; this.wy+=this.vy*dtDays; this.spin+=dtDays; if(Math.hypot(this.wx,this.wy)>4000) this.dead=true; }
-  draw(ctx,cam,cx,cy){
-    const s=cam.toScreen(this.wx,this.wy,cx,cy), r=Math.max(1.5,this.radius*cam.zoom);
-    ctx.globalAlpha=1; ctx.fillStyle=this.color; ctx.beginPath();
-    for(let i=0;i<7;i++){ const a=this.spin+(i/7)*TAU; const rr=r*(0.75+0.25*Math.sin(i*2.3)); const px=s.x+Math.cos(a)*rr, py=s.y+Math.sin(a)*rr; i===0?ctx.moveTo(px,py):ctx.lineTo(px,py); }
-    ctx.closePath(); ctx.fill();
-  }
-}
-
-/* ============================ Comet ============================ */
-class Comet {
-  constructor(wx,wy){ this.wx=wx; this.wy=wy; const a=rand(0,TAU), sp=rand(80,140); this.vx=Math.cos(a)*sp; this.vy=Math.sin(a)*sp; this.radius=rand(2,3.5); this.dead=false; this.trail=[]; this.kind="comet"; }
-  update(dtDays){ this.wx+=this.vx*dtDays; this.wy+=this.vy*dtDays; this._push(); if(Math.hypot(this.wx,this.wy)>4500) this.dead=true; }
-  _push(){ this.trail.push({x:this.wx,y:this.wy}); if(this.trail.length>28) this.trail.shift(); }
-  draw(ctx,cam,cx,cy){
-    for(let i=0;i<this.trail.length;i++){ const p=cam.toScreen(this.trail[i].x,this.trail[i].y,cx,cy); const k=i/this.trail.length; ctx.globalAlpha=k*0.5; ctx.fillStyle="#9fdcff"; ctx.beginPath(); ctx.arc(p.x,p.y,Math.max(1,this.radius*cam.zoom*k),0,TAU); ctx.fill(); }
-    const s=cam.toScreen(this.wx,this.wy,cx,cy), r=Math.max(2,this.radius*cam.zoom);
-    const g=ctx.createRadialGradient(s.x,s.y,0,s.x,s.y,r*4); g.addColorStop(0,"#ffffff"); g.addColorStop(0.4,"#bfe9ff"); g.addColorStop(1,"rgba(120,200,255,0)");
-    ctx.globalAlpha=1; ctx.fillStyle=g; ctx.beginPath(); ctx.arc(s.x,s.y,r*4,0,TAU); ctx.fill();
-    ctx.fillStyle="#fff"; ctx.beginPath(); ctx.arc(s.x,s.y,r,0,TAU); ctx.fill();
-  }
-}
-
-/* ============================ BlackHole ============================ */
-class BlackHole {
-  constructor(wx,wy){ this.wx=wx; this.wy=wy; this.radius=9; this.pull=6000; this.dead=false; this.spin=0; this.kind="blackhole"; }
-  applyGravity(body,dtDays){
-    const dx=this.wx-body.wx, dy=this.wy-body.wy, d2=dx*dx+dy*dy+50, d=Math.sqrt(d2), f=(this.pull/d2)*dtDays;
-    body.vx+=(dx/d)*f*60; body.vy+=(dy/d)*f*60; return d;
-  }
-  update(dtDays){ this.spin+=dtDays*4; }
-  draw(ctx,cam,cx,cy){
-    const s=cam.toScreen(this.wx,this.wy,cx,cy), r=Math.max(5,this.radius*cam.zoom);
-    const ring=ctx.createRadialGradient(s.x,s.y,r,s.x,s.y,r*3.2);
-    ring.addColorStop(0,"rgba(155,123,255,0)"); ring.addColorStop(0.55,"rgba(180,120,255,0.55)"); ring.addColorStop(0.8,"rgba(255,140,90,0.35)"); ring.addColorStop(1,"rgba(255,140,90,0)");
-    ctx.globalAlpha=1; ctx.fillStyle=ring; ctx.beginPath(); ctx.arc(s.x,s.y,r*3.2,0,TAU); ctx.fill();
-    ctx.fillStyle="#000"; ctx.beginPath(); ctx.arc(s.x,s.y,r,0,TAU); ctx.fill();
-    ctx.strokeStyle="rgba(200,170,255,0.6)"; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(s.x,s.y,r,0,TAU); ctx.stroke();
-  }
-}
-
-/* ============================ Net (MQTT 동기화) ============================
-   메시지 envelope: { t, id, ... }  ·  토픽: orrery/room/<ROOM>
-   t = hello | welcome | cursor | clock | spawn | pos | despawn | bye */
-class Net {
-  constructor(sim){
-    this.sim=sim; this.client=null; this.connected=false;
-    this.id=Math.random().toString(36).slice(2,8);
-    this.name=""; this.color=colorFor(this.id); this.topic="";
-    this.players=new Map();          // id -> {name,color,x,y,tx,ty,lastSeen}
-    this.awaitClock=false;
-    this.lastCursor=0; this.lastPos=0;
-    this._rosterDirty=true;
-  }
-  connect(name, room, broker){
-    if(typeof mqtt==="undefined"){ this.setStatus("err","라이브러리 로드 실패"); return; }
-    this.name=name||("Explorer"+Math.floor(rand(10,99)));
-    this.color=colorFor(this.id);
-    const safeRoom=(room||"alpha").replace(/[^a-zA-Z0-9_-]/g,"").slice(0,24)||"alpha";
-    this.topic="orrery/room/"+safeRoom;
-    this.setStatus("connecting","접속 중…");
-    try {
-      this.client=mqtt.connect(broker, {
-        clientId:"orrery_"+this.id+Math.random().toString(36).slice(2,5),
-        keepalive:30, reconnectPeriod:4000, connectTimeout:8000,
-        will:{ topic:this.topic, payload:JSON.stringify({t:"bye",id:this.id}), qos:0 }
-      });
-    } catch(e){ this.setStatus("err","브로커 주소 오류"); return; }
-
-    this.client.on("connect", ()=>{
-      this.connected=true; this.setStatus("on","접속됨 · "+safeRoom);
-      this.client.subscribe(this.topic);
-      this.awaitClock=true;                                  // 첫 시계 메시지를 받아 동기화
-      this.pub({t:"hello", id:this.id, name:this.name, color:this.color});
-      this._broadcastMyBodies();                              // 내가 이미 만든 천체 공유
-      this._rosterDirty=true;
-    });
-    this.client.on("message",(t,p)=>{ try{ this.onMsg(JSON.parse(p.toString())); }catch(e){} });
-    this.client.on("reconnect", ()=> this.setStatus("connecting","재접속 중…"));
-    this.client.on("error", ()=> this.setStatus("err","연결 오류"));
-    this.client.on("close", ()=>{ if(this.connected) this.setStatus("connecting","연결 끊김"); });
-  }
-  disconnect(){
-    if(this.client){ this.pub({t:"bye",id:this.id}); try{ this.client.end(true); }catch(e){} }
-    this.client=null; this.connected=false;
-    this.players.clear(); this.sim.remoteBodies.clear();
-    this._rosterDirty=true; this.setStatus("off","오프라인");
-  }
-  pub(obj){ if(this.connected && this.client) this.client.publish(this.topic, JSON.stringify(obj)); }
-  _spawnMsg(b){ return {t:"spawn", id:this.id, bid:b.bid, kind:b.kind, wx:Math.round(b.wx), wy:Math.round(b.wy), vx:b.vx||0, vy:b.vy||0}; }
-  _broadcastMyBodies(){ for(const b of this.sim.bodies){ if(b.bid) this.pub(this._spawnMsg(b)); } }
-
-  onMsg(m){
-    if(m.id===this.id) return;                                // 내 메시지는 무시
-    switch(m.t){
-      case "hello":
-        this._touchPlayer(m);
-        this.pub({t:"welcome", id:this.id, name:this.name, color:this.color, elapsedDays:this.sim.elapsedDays, timeWarp:this.sim.timeWarp});
-        this._broadcastMyBodies();                            // 새로 들어온 사람에게 내 천체 알림
-        break;
-      case "welcome":
-        this._touchPlayer(m);
-        if(this.awaitClock){ this.sim.elapsedDays=m.elapsedDays; this.sim.setSpeed(m.timeWarp,false); this.awaitClock=false; }
-        break;
-      case "cursor":
-        this._touchPlayer(m); { const pl=this.players.get(m.id); if(pl){ pl.tx=m.x; pl.ty=m.y; } } break;
-      case "clock":
-        this.sim.elapsedDays=m.elapsedDays; this.sim.setSpeed(m.timeWarp,false); break;
-      case "spawn":   this.sim.addRemoteBody(m); break;
-      case "pos":     this.sim.updateRemote(m); break;
-      case "despawn": this.sim.removeRemoteBody(m.bid); break;
-      case "bye":     this._removePlayer(m.id); break;
+  spawnMeteor(w,h){ const edge=Math.random()<.5; const x=edge?rand(0,w):(Math.random()<.5?-20:w+20); const y=edge?(Math.random()<.5?-20:h+20):rand(0,h);
+    const tx=rand(w*.3,w*.7),ty=rand(h*.3,h*.7); const a=Math.atan2(ty-y,tx-x); const sp=rand(7,13);
+    this.meteors.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1,trail:[]}); }
+  update(dt,w,h){ this._next-=dt; if(this._next<=0){ this._next=rand(2.5,7); this.spawnMeteor(w,h); }
+    for(const m of this.meteors){ m.x+=m.vx; m.y+=m.vy; m.trail.push({x:m.x,y:m.y}); if(m.trail.length>14) m.trail.shift(); m.life-=dt*0.5; }
+    this.meteors=this.meteors.filter(m=>m.life>0 && m.x>-60&&m.x<w+60&&m.y>-60&&m.y<h+60); }
+  draw(ctx,cam,t,w,h){
+    // 은하수 띠 (대각선 글로우 + 별 밀집)
+    ctx.save(); ctx.globalCompositeOperation="lighter";
+    const mw=ctx.createLinearGradient(0,h*0.1,w,h*0.9);
+    mw.addColorStop(0,"rgba(40,30,80,0)"); mw.addColorStop(0.45,"rgba(90,80,150,0.10)"); mw.addColorStop(0.55,"rgba(120,90,140,0.13)"); mw.addColorStop(1,"rgba(40,30,80,0)");
+    ctx.fillStyle=mw; ctx.save(); ctx.translate(w/2,h/2); ctx.rotate(-0.5); ctx.translate(-w/2,-h/2); ctx.fillRect(-w,-h,w*3,h*3); ctx.restore();
+    // 성운
+    for(const n of this.nebulae){
+      const px=n.x-cam.x*n.depth*cam.zoom, py=n.y-cam.y*n.depth*cam.zoom;
+      const g=ctx.createRadialGradient(px,py,0,px,py,n.r);
+      g.addColorStop(0,`rgba(${n.c[0]},${n.c[1]},${n.c[2]},${n.a})`);
+      g.addColorStop(0.5,`rgba(${n.c[0]},${n.c[1]},${n.c[2]},${n.a*0.4})`);
+      g.addColorStop(1,"rgba(0,0,0,0)");
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(px,py,n.r,0,TAU); ctx.fill();
     }
-  }
-  _touchPlayer(m){
-    let pl=this.players.get(m.id);
-    if(!pl){ pl={name:m.name||"?", color:m.color||colorFor(m.id), x:0,y:0,tx:0,ty:0,lastSeen:now()}; this.players.set(m.id,pl); this._rosterDirty=true; }
-    if(m.name) pl.name=m.name; if(m.color) pl.color=m.color; pl.lastSeen=now();
-  }
-  _removePlayer(id){
-    if(this.players.delete(id)) this._rosterDirty=true;
-    // 떠난 플레이어가 만든 천체 제거
-    for(const [bid,rb] of this.sim.remoteBodies){ if(rb.owner===id) this.sim.remoteBodies.delete(bid); }
-  }
-  // 매 프레임: 커서/위치 전송 + 오래된 플레이어 정리 + 로스터 갱신
-  tick(dt){
-    if(!this.connected) return;
-    const t=now();
-    if(t-this.lastCursor>110){
-      this.lastCursor=t;
-      const w=this.sim.cam.toWorld(this.sim.cursorS.x, this.sim.cursorS.y, this.sim.W/2, this.sim.H/2);
-      this.pub({t:"cursor", id:this.id, name:this.name, color:this.color, x:Math.round(w.x), y:Math.round(w.y)});
-    }
-    if(t-this.lastPos>90){
-      this.lastPos=t;
-      const items=[]; for(const b of this.sim.bodies){ if(b.bid) items.push([b.bid, Math.round(b.wx), Math.round(b.wy)]); }
-      if(items.length) this.pub({t:"pos", id:this.id, items});
-    }
-    // 6초 이상 소식 없는 플레이어/천체 정리
-    for(const [id,pl] of this.players){ if(t-pl.lastSeen>6000) this._removePlayer(id); }
-    for(const [bid,rb] of this.sim.remoteBodies){ if(t-rb.lastSeen>6000) this.sim.remoteBodies.delete(bid); }
-    if(this._rosterDirty){ this._renderRoster(); this._rosterDirty=false; }
-  }
-  setStatus(state,text){
-    const dot=document.getElementById("mpDot"); dot.className="dot"+(state==="on"?" on":state==="connecting"?" connecting":"");
-    document.getElementById("mpStatus").textContent=text;
-    const btn=document.getElementById("mpConnect");
-    btn.classList.toggle("on", this.connected); btn.textContent=this.connected?"나가기":"접속";
-    if(state==="off"||state==="err") btn.classList.remove("on");
-  }
-  _renderRoster(){
-    const box=document.getElementById("mpRoster"); box.innerHTML="";
-    if(!this.connected) return;
-    const chip=(name,color,me)=>{ const d=document.createElement("div"); d.className="chip"; d.innerHTML=`<span class="cd" style="background:${color};color:${color}"></span>${name}${me?" (나)":""}`; return d; };
-    box.appendChild(chip(this.name, this.color, true));
-    for(const [id,pl] of this.players) box.appendChild(chip(pl.name, pl.color, false));
-  }
-  // 원격 플레이어 커서 그리기
-  drawCursors(ctx,cam,cx,cy){
-    for(const [id,pl] of this.players){
-      pl.x+=(pl.tx-pl.x)*0.3; pl.y+=(pl.ty-pl.y)*0.3;
-      const s=cam.toScreen(pl.x,pl.y,cx,cy);
-      ctx.globalAlpha=0.95; ctx.strokeStyle=pl.color; ctx.lineWidth=2;
-      ctx.beginPath(); ctx.arc(s.x,s.y,7,0,TAU); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(s.x,s.y-11); ctx.lineTo(s.x,s.y-4); ctx.moveTo(s.x,s.y+4); ctx.lineTo(s.x,s.y+11);
-      ctx.moveTo(s.x-11,s.y); ctx.lineTo(s.x-4,s.y); ctx.moveTo(s.x+4,s.y); ctx.lineTo(s.x+11,s.y); ctx.stroke();
-      ctx.fillStyle=pl.color; ctx.font="11px ui-monospace,monospace"; ctx.textAlign="left";
-      ctx.fillText(pl.name, s.x+12, s.y+4);
-    }
+    ctx.restore();
+    // 먼지
+    for(const d of this.dust){ const px=d.x-cam.x*d.depth*cam.zoom, py=d.y-cam.y*d.depth*cam.zoom;
+      ctx.globalAlpha=d.a; ctx.fillStyle="#8fa6d8"; ctx.fillRect(((px%w)+w)%w,((py%h)+h)%h,d.s,d.s); }
     ctx.globalAlpha=1;
   }
+  drawStars(ctx,cam,t,w,h,holes){
+    for(const s of this.stars){
+      let px=((s.x-cam.x*s.depth*cam.zoom)%(2*w)+2*w)%(2*w)-w*0.0;
+      let py=((s.y-cam.y*s.depth*cam.zoom)%(2*h)+2*h)%(2*h)-h*0.0;
+      px=((px%w)+w)%w; py=((py%h)+h)%h;
+      // 중력 렌즈: 블랙홀 근처 별을 바깥으로 밀어 광자 고리처럼
+      let hidden=false;
+      for(const ho of holes){
+        const dx=px-ho.sx, dy=py-ho.sy, d=Math.hypot(dx,dy), lr=ho.r*9;
+        if(d<lr){
+          if(d<ho.r*1.4){ hidden=true; break; }                      // 그림자 안: 사라짐
+          const push=(ho.r*ho.r*2.2)/(d);                            // 바깥으로 변위
+          px+=dx/d*push; py+=dy/d*push;
+        }
+      }
+      if(hidden) continue;
+      const tw=s.a*(0.55+0.45*Math.sin(t*s.sp+s.ph));
+      ctx.globalAlpha=tw; ctx.fillStyle=s.c;
+      ctx.beginPath(); ctx.arc(px,py,s.s,0,TAU); ctx.fill();
+    }
+    ctx.globalAlpha=1;
+    // 유성
+    for(const m of this.meteors){ for(let i=0;i<m.trail.length;i++){ const p=m.trail[i],k=i/m.trail.length;
+      ctx.globalAlpha=k*m.life*0.8; ctx.fillStyle="#dff0ff"; ctx.beginPath(); ctx.arc(p.x,p.y,k*1.6,0,TAU); ctx.fill(); } }
+    ctx.globalAlpha=1;
+  }
+}
+
+/* ============================ Sun (플라즈마·플레어·코로나·솔라윈드) ============================ */
+class Sun{
+  constructor(){ this.wx=0; this.wy=0; this.radius=46; this.name="태양"; this.color="#ffcf6e"; this.type="STAR";
+    this.flares=[]; this.wind=[]; this._fnext=rand(1.5,4);
+    this.info={ radius:"696,340 km", dist:"—", speed:"—", mass:"1.989 × 10³⁰ kg", gravity:"274 m/s²", temp:"표면 5,500 °C", period:"—", rotation:"약 25일", moons:"8개 행성",
+      desc:"태양계 질량의 99.86%를 차지하는 G형 주계열성. 중심에서 초당 6억 톤의 수소를 융합하며 시스템 전체를 붙들고 있습니다." }; }
+  update(dt){
+    this._fnext-=dt; if(this._fnext<=0){ this._fnext=rand(1.2,3.5);
+      this.flares.push({ang:rand(0,TAU),len:rand(0.5,1.4),life:1,w:rand(0.1,0.3)}); }
+    for(const f of this.flares) f.life-=dt*0.5; this.flares=this.flares.filter(f=>f.life>0);
+    // 솔라윈드 입자
+    if(Math.random()<0.6) this.wind.push({ang:rand(0,TAU),d:1,life:1,sp:rand(0.4,1.1)});
+    for(const p of this.wind){ p.d+=p.sp*dt*4; p.life-=dt*0.5; } this.wind=this.wind.filter(p=>p.life>0);
+  }
+  draw(ctx,cam,cx,cy,t){
+    const s=cam.toScreen(this.wx,this.wy,cx,cy), r=this.radius*cam.zoom;
+    ctx.save(); ctx.globalCompositeOperation="lighter";
+    // 솔라윈드 입자
+    for(const p of this.wind){ const rr=r*(1+p.d*0.6); const px=s.x+Math.cos(p.ang)*rr, py=s.y+Math.sin(p.ang)*rr;
+      ctx.globalAlpha=p.life*0.4; ctx.fillStyle="#ffd9a0"; ctx.beginPath(); ctx.arc(px,py,Math.max(.6,r*0.03*p.life),0,TAU); ctx.fill(); }
+    // 코로나 (펄스 + 회전 광선)
+    const pulse=1+0.05*Math.sin(t*1.4);
+    const cor=ctx.createRadialGradient(s.x,s.y,r*0.6,s.x,s.y,r*5.5*pulse);
+    cor.addColorStop(0,"rgba(255,200,110,0.5)"); cor.addColorStop(0.25,"rgba(255,150,60,0.18)"); cor.addColorStop(0.6,"rgba(255,110,40,0.06)"); cor.addColorStop(1,"rgba(255,90,30,0)");
+    ctx.globalAlpha=1; ctx.fillStyle=cor; ctx.beginPath(); ctx.arc(s.x,s.y,r*5.5*pulse,0,TAU); ctx.fill();
+    // 회전 광선(코로나 스트리머)
+    ctx.save(); ctx.translate(s.x,s.y); ctx.rotate(t*0.05);
+    for(let i=0;i<12;i++){ const a=(i/12)*TAU; const len=r*(2.6+0.8*Math.sin(t*0.7+i));
+      const rg=ctx.createLinearGradient(0,0,Math.cos(a)*len,Math.sin(a)*len);
+      rg.addColorStop(0,"rgba(255,180,80,0.18)"); rg.addColorStop(1,"rgba(255,140,50,0)");
+      ctx.strokeStyle=rg; ctx.lineWidth=r*0.18; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.cos(a)*len,Math.sin(a)*len); ctx.stroke(); }
+    ctx.restore();
+    // 플레어/프로미넌스 (limb 아치)
+    for(const f of this.flares){ const a=f.ang, h=r*f.len*Math.sin(f.life*Math.PI);
+      const bx=s.x+Math.cos(a)*r, by=s.y+Math.sin(a)*r; const ox=Math.cos(a+0.25)*h, oy=Math.sin(a+0.25)*h;
+      ctx.globalAlpha=f.life*0.7; ctx.strokeStyle="rgba(255,170,80,0.8)"; ctx.lineWidth=Math.max(1,r*f.w);
+      ctx.beginPath(); ctx.moveTo(bx,by); ctx.quadraticCurveTo(bx+ox*1.4,by+oy*1.4,bx+Math.cos(a+0.5)*h*0.6,by+Math.sin(a+0.5)*h*0.6); ctx.stroke(); }
+    ctx.restore();
+    // 본체 + 표면 플라즈마(값 노이즈 그래뉼)
+    ctx.globalAlpha=1;
+    const core=ctx.createRadialGradient(s.x-r*0.2,s.y-r*0.2,0,s.x,s.y,r);
+    core.addColorStop(0,"#fff8e6"); core.addColorStop(0.5,"#ffd66b"); core.addColorStop(0.85,"#ff9f3d"); core.addColorStop(1,"#ff7a2a");
+    ctx.fillStyle=core; ctx.beginPath(); ctx.arc(s.x,s.y,r,0,TAU); ctx.fill();
+    if(r>14){ // 가까울 때만 그래뉼레이션 (성능)
+      ctx.save(); ctx.beginPath(); ctx.arc(s.x,s.y,r,0,TAU); ctx.clip(); ctx.globalCompositeOperation="overlay";
+      const cells=Math.min(60,Math.floor(r*0.7));
+      for(let i=0;i<cells;i++){ const a=hash(i,1)*TAU, rr=Math.sqrt(hash(i,2))*r;
+        const px=s.x+Math.cos(a)*rr, py=s.y+Math.sin(a)*rr;
+        const br=0.4+0.6*vnoise(hash(i,3)*10+t*0.6, hash(i,4)*10);
+        ctx.globalAlpha=0.25*br; ctx.fillStyle=br>0.6?"#fff1c0":"#c8551a";
+        const gr=ctx.createRadialGradient(px,py,0,px,py,r*0.22);
+        gr.addColorStop(0,ctx.fillStyle); gr.addColorStop(1,"rgba(0,0,0,0)"); ctx.fillStyle=gr;
+        ctx.beginPath(); ctx.arc(px,py,r*0.22,0,TAU); ctx.fill(); }
+      ctx.restore();
+    }
+    // 렌즈 플레어 (화면 중심 방향 고스트)
+    this._lensFlare(ctx,s,r,cx,cy);
+  }
+  _lensFlare(ctx,s,r,cx,cy){
+    const dx=cx-s.x, dy=cy-s.y; ctx.save(); ctx.globalCompositeOperation="lighter";
+    for(let i=1;i<=4;i++){ const gx=s.x+dx*(i*0.45), gy=s.y+dy*(i*0.45); const gr=r*(0.18+0.1*i);
+      const g=ctx.createRadialGradient(gx,gy,0,gx,gy,gr); const hue=i%2?"rgba(120,200,255,":"rgba(255,200,140,";
+      g.addColorStop(0,hue+"0.16)"); g.addColorStop(1,hue+"0)"); ctx.fillStyle=g; ctx.beginPath(); ctx.arc(gx,gy,gr,0,TAU); ctx.fill(); }
+    // 수평 스트릭
+    const st=ctx.createLinearGradient(s.x-r*4,s.y,s.x+r*4,s.y);
+    st.addColorStop(0,"rgba(255,210,150,0)"); st.addColorStop(0.5,"rgba(255,220,170,0.12)"); st.addColorStop(1,"rgba(255,210,150,0)");
+    ctx.fillStyle=st; ctx.fillRect(s.x-r*4,s.y-r*0.04,r*8,r*0.08);
+    ctx.restore();
+  }
+}
+
+/* ============================ Planet (대기·야간면·밴드·자전) ============================ */
+class Planet{
+  constructor(c){ Object.assign(this,c); this.angle=c.angle0; this.spin=rand(0,TAU);
+    this.captured=false; this.vx=0; this.vy=0; this.dead=false; this.wx=this.orbit; this.wy=0; }
+  update(elapsed,dtDays){
+    this.spin+=dtDays*0.5*(this.spinDir||1);
+    if(!this.captured){ this.angle=this.angle0+(TAU/this.periodDays)*elapsed; this.wx=Math.cos(this.angle)*this.orbit; this.wy=Math.sin(this.angle)*this.orbit; }
+    else { this.wx+=this.vx*dtDays; this.wy+=this.vy*dtDays; }
+  }
+  capture(){ if(this.captured) return; this.captured=true; const sp=TAU*this.orbit/this.periodDays; this.vx=-Math.sin(this.angle)*sp; this.vy=Math.cos(this.angle)*sp; }
+  drawOrbit(ctx,cam,cx,cy){ const c=cam.toScreen(0,0,cx,cy); ctx.strokeStyle="rgba(120,170,255,0.1)"; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(c.x,c.y,this.orbit*cam.zoom,0,TAU); ctx.stroke(); }
+  draw(ctx,cam,cx,cy,sel,label,t){
+    const s=cam.toScreen(this.wx,this.wy,cx,cy), r=Math.max(2,this.radius*cam.zoom);
+    const sunDir=Math.atan2(-this.wy,-this.wx);     // 태양 방향(=낮)
+    if(this.hasRing) this._ring(ctx,s,r,true,sunDir);
+    // 대기 글로우
+    if(this.atmo){ const ag=ctx.createRadialGradient(s.x,s.y,r*0.9,s.x,s.y,r*1.4);
+      ag.addColorStop(0,this.atmo); ag.addColorStop(1,"rgba(0,0,0,0)"); ctx.fillStyle=ag; ctx.beginPath(); ctx.arc(s.x,s.y,r*1.4,0,TAU); ctx.fill(); }
+    // 본체
+    const lx=s.x+Math.cos(sunDir)*r*0.42, ly=s.y+Math.sin(sunDir)*r*0.42;
+    const g=ctx.createRadialGradient(lx,ly,r*0.1,s.x,s.y,r*1.12);
+    g.addColorStop(0,this._mix(this.color,255,0.4)); g.addColorStop(0.55,this.color); g.addColorStop(1,this._mix(this.color,0,0.72));
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(s.x,s.y,r,0,TAU); ctx.fill();
+    // 가스행성 밴드 / 지구 디테일 (가까울 때만)
+    if(r>6){ ctx.save(); ctx.beginPath(); ctx.arc(s.x,s.y,r,0,TAU); ctx.clip();
+      if(this.bands){ for(let i=-3;i<=3;i++){ const yy=s.y+i*r*0.28+Math.sin(t*0.3+i)*r*0.04;
+          ctx.globalAlpha=0.18; ctx.fillStyle=i%2?this._mix(this.color,0,0.3):this._mix(this.color,255,0.25);
+          ctx.fillRect(s.x-r,yy-r*0.12,r*2,r*0.24); }
+        if(this.spot){ const sx=s.x+Math.cos(this.spin)*r*0.3, sy=s.y+r*0.25;
+          ctx.globalAlpha=0.5; ctx.fillStyle="#b5452f"; ctx.beginPath(); ctx.ellipse(sx,sy,r*0.22,r*0.13,0,0,TAU); ctx.fill(); } }
+      if(this.earth){ ctx.globalAlpha=0.35; ctx.fillStyle="#3a7d44";   // 대륙 느낌
+        for(let i=0;i<5;i++){ const a=this.spin+i*1.3; ctx.beginPath(); ctx.ellipse(s.x+Math.cos(a)*r*0.4,s.y+Math.sin(a*1.3)*r*0.4,r*0.3,r*0.18,a,0,TAU); ctx.fill(); }
+        ctx.globalAlpha=0.25; ctx.fillStyle="#ffffff";                  // 구름
+        for(let i=0;i<4;i++){ const a=this.spin*1.2+i*1.7; ctx.beginPath(); ctx.ellipse(s.x+Math.cos(a)*r*0.45,s.y+Math.sin(a)*r*0.35,r*0.28,r*0.12,a,0,TAU); ctx.fill(); } }
+      ctx.restore();
+    }
+    // 야간면 그림자(태양 반대쪽)
+    ctx.save(); ctx.beginPath(); ctx.arc(s.x,s.y,r,0,TAU); ctx.clip();
+    const nd=sunDir+Math.PI, ng=ctx.createRadialGradient(s.x+Math.cos(nd)*r*0.5,s.y+Math.sin(nd)*r*0.5,0,s.x+Math.cos(nd)*r*0.5,s.y+Math.sin(nd)*r*0.5,r*1.5);
+    ng.addColorStop(0,"rgba(0,0,0,0.6)"); ng.addColorStop(0.7,"rgba(0,0,0,0.15)"); ng.addColorStop(1,"rgba(0,0,0,0)");
+    ctx.fillStyle=ng; ctx.fillRect(s.x-r,s.y-r,r*2,r*2); ctx.restore();
+    if(this.hasRing) this._ring(ctx,s,r,false,sunDir);
+    if(sel){ ctx.strokeStyle="#5ad6e0"; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(s.x,s.y,r+7,0,TAU); ctx.stroke(); }
+    if(label && cam.zoom>0.12){ ctx.globalAlpha=0.85; ctx.fillStyle="#cfe0ff"; ctx.font="11px ui-monospace,monospace"; ctx.textAlign="center"; ctx.fillText(this.name,s.x,s.y-r-9); ctx.textAlign="left"; ctx.globalAlpha=1; }
+  }
+  _ring(ctx,s,r,behind,sunDir){ ctx.save(); ctx.translate(s.x,s.y); ctx.scale(1,0.34); ctx.rotate(-0.4);
+    for(let k=0;k<3;k++){ const rr=r*(1.5+k*0.32);
+      ctx.strokeStyle=behind?`rgba(220,200,160,${0.18-k*0.04})`:`rgba(240,225,180,${0.5-k*0.12})`; ctx.lineWidth=Math.max(1,r*(0.26-k*0.06));
+      ctx.beginPath(); behind?ctx.arc(0,0,rr,Math.PI,TAU):ctx.arc(0,0,rr,0,Math.PI); ctx.stroke(); }
+    ctx.restore(); }
+  _mix(hex,tg,amt){ const c=hex.replace("#",""); const r=parseInt(c.substr(0,2),16),g=parseInt(c.substr(2,2),16),b=parseInt(c.substr(4,2),16); const m=v=>Math.round(v+(tg-v)*amt); return `rgb(${m(r)},${m(g)},${m(b)})`; }
+}
+
+/* ============================ Asteroid / Comet ============================ */
+class Asteroid{ constructor(wx,wy){ this.wx=wx; this.wy=wy; this.vx=rand(-30,30); this.vy=rand(-30,30); this.radius=rand(1.5,3.5); this.color="#9a8c7a"; this.dead=false; this.spin=rand(0,TAU); this.kind="asteroid"; }
+  update(dt){ this.wx+=this.vx*dt; this.wy+=this.vy*dt; this.spin+=dt; if(Math.hypot(this.wx,this.wy)>9000) this.dead=true; }
+  draw(ctx,cam,cx,cy){ const s=cam.toScreen(this.wx,this.wy,cx,cy), r=Math.max(1.5,this.radius*cam.zoom); ctx.globalAlpha=1; ctx.fillStyle=this.color; ctx.beginPath();
+    for(let i=0;i<7;i++){ const a=this.spin+(i/7)*TAU, rr=r*(0.75+0.25*Math.sin(i*2.3)); const px=s.x+Math.cos(a)*rr,py=s.y+Math.sin(a)*rr; i===0?ctx.moveTo(px,py):ctx.lineTo(px,py); } ctx.closePath(); ctx.fill(); } }
+class Comet{ constructor(wx,wy){ this.wx=wx; this.wy=wy; const a=rand(0,TAU),sp=rand(120,200); this.vx=Math.cos(a)*sp; this.vy=Math.sin(a)*sp; this.radius=rand(2,3.5); this.dead=false; this.trail=[]; this.kind="comet"; }
+  update(dt){ this.wx+=this.vx*dt; this.wy+=this.vy*dt; this._push(); if(Math.hypot(this.wx,this.wy)>10000) this.dead=true; }
+  _push(){ this.trail.push({x:this.wx,y:this.wy}); if(this.trail.length>30) this.trail.shift(); }
+  draw(ctx,cam,cx,cy){ ctx.save(); ctx.globalCompositeOperation="lighter";
+    for(let i=0;i<this.trail.length;i++){ const p=cam.toScreen(this.trail[i].x,this.trail[i].y,cx,cy),k=i/this.trail.length; ctx.globalAlpha=k*0.5; ctx.fillStyle="#9fdcff"; ctx.beginPath(); ctx.arc(p.x,p.y,Math.max(1,this.radius*cam.zoom*k),0,TAU); ctx.fill(); }
+    const s=cam.toScreen(this.wx,this.wy,cx,cy),r=Math.max(2,this.radius*cam.zoom);
+    const g=ctx.createRadialGradient(s.x,s.y,0,s.x,s.y,r*4); g.addColorStop(0,"#fff"); g.addColorStop(0.4,"#bfe9ff"); g.addColorStop(1,"rgba(120,200,255,0)");
+    ctx.globalAlpha=1; ctx.fillStyle=g; ctx.beginPath(); ctx.arc(s.x,s.y,r*4,0,TAU); ctx.fill(); ctx.fillStyle="#fff"; ctx.beginPath(); ctx.arc(s.x,s.y,r,0,TAU); ctx.fill(); ctx.restore(); } }
+
+/* ============================ Supernova (랜덤/버튼 이벤트) ============================ */
+class Supernova{ constructor(wx,wy){ this.wx=wx; this.wy=wy; this.life=1; this.dead=false; this.kind="supernova"; }
+  update(dt){ this.life-=dt*0.35; if(this.life<=0) this.dead=true; }
+  draw(ctx,cam,cx,cy){ const s=cam.toScreen(this.wx,this.wy,cx,cy); const e=1-this.life; const R=(40+e*420)*cam.zoom;
+    ctx.save(); ctx.globalCompositeOperation="lighter";
+    const g=ctx.createRadialGradient(s.x,s.y,0,s.x,s.y,R); const a=this.life;
+    g.addColorStop(0,`rgba(255,255,255,${a})`); g.addColorStop(0.3,`rgba(180,220,255,${a*0.7})`); g.addColorStop(0.6,`rgba(120,150,255,${a*0.3})`); g.addColorStop(1,"rgba(80,60,160,0)");
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(s.x,s.y,R,0,TAU); ctx.fill();
+    ctx.globalAlpha=a; ctx.strokeStyle="rgba(220,235,255,0.8)"; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(s.x,s.y,R*0.7,0,TAU); ctx.stroke(); ctx.restore(); } }
+
+/* ============================ BlackHole (이벤트 호라이즌·강착원반·제트·렌즈) ============================ */
+class BlackHole{
+  constructor(wx,wy){ this.wx=wx; this.wy=wy; this.radius=14; this.pull=14000; this.dead=false; this.spin=0; this.kind="blackhole";
+    this.tilt=rand(-0.5,-0.2); this.jet=[]; }
+  applyGravity(b,dt){ const dx=this.wx-b.wx,dy=this.wy-b.wy,d2=dx*dx+dy*dy+60,d=Math.sqrt(d2),f=(this.pull/d2)*dt; b.vx+=(dx/d)*f*60; b.vy+=(dy/d)*f*60; return d; }
+  update(dt){ this.spin+=dt*3;
+    if(Math.random()<0.5){ const dir=Math.random()<.5?1:-1; this.jet.push({d:1,dir,life:1,off:rand(-0.06,0.06)}); }
+    for(const j of this.jet){ j.d+=dt*5; j.life-=dt*0.6; } this.jet=this.jet.filter(j=>j.life>0); }
+  // 렌즈 정보(별 왜곡용): 화면 좌표 + 반경
+  lensInfo(cam,cx,cy){ const s=cam.toScreen(this.wx,this.wy,cx,cy); return {sx:s.x,sy:s.y,r:Math.max(5,this.radius*cam.zoom)}; }
+  draw(ctx,cam,cx,cy,t){
+    const s=cam.toScreen(this.wx,this.wy,cx,cy), r=Math.max(5,this.radius*cam.zoom);
+    // 제트 (수직 분출)
+    ctx.save(); ctx.globalCompositeOperation="lighter"; ctx.translate(s.x,s.y); ctx.rotate(this.tilt+Math.PI/2);
+    for(const j of this.jet){ for(const sgn of [1,-1]){ const len=r*j.d*3; const w=r*0.25*j.life;
+      const g=ctx.createLinearGradient(0,0,0,sgn*len); g.addColorStop(0,`rgba(150,200,255,${j.life*0.7})`); g.addColorStop(1,"rgba(120,120,255,0)");
+      ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(j.off*r*4,sgn*len*0.5,w,len*0.5,0,0,TAU); ctx.fill(); } }
+    ctx.restore();
+    // 강착원반 (기울어진 타원, 주황→노랑→파랑, 도플러 비밍)
+    ctx.save(); ctx.globalCompositeOperation="lighter"; ctx.translate(s.x,s.y); ctx.rotate(this.tilt);
+    for(let i=0;i<48;i++){ const a=(i/48)*TAU+this.spin; const rr=r*(1.7+0.9*((i*7)%5)/5);
+      ctx.save(); ctx.scale(1,0.32); const px=Math.cos(a)*rr, py=Math.sin(a)*rr;
+      const beam=0.5+0.5*Math.cos(a);                          // 한쪽이 더 밝게(도플러)
+      const t1=rr/r;                                            // 안쪽=파랑/흰, 바깥=주황
+      let col = t1<2.0 ? `rgba(180,220,255,${(0.5+0.5*beam)*0.5})` : t1<2.4 ? `rgba(255,230,150,${(0.4+0.6*beam)*0.45})` : `rgba(255,150,60,${(0.3+0.7*beam)*0.4})`;
+      ctx.fillStyle=col; ctx.beginPath(); ctx.arc(px,py,r*0.32,0,TAU); ctx.fill(); ctx.restore(); }
+    ctx.restore();
+    // 광자 고리 (호라이즌 바로 바깥의 밝은 테)
+    ctx.save(); ctx.globalCompositeOperation="lighter";
+    const ring=ctx.createRadialGradient(s.x,s.y,r*1.0,s.x,s.y,r*1.5);
+    ring.addColorStop(0,"rgba(255,240,210,0)"); ring.addColorStop(0.6,"rgba(255,235,200,0.9)"); ring.addColorStop(1,"rgba(255,220,170,0)");
+    ctx.fillStyle=ring; ctx.beginPath(); ctx.arc(s.x,s.y,r*1.5,0,TAU); ctx.fill(); ctx.restore();
+    // 이벤트 호라이즌 — 완전한 검정 (빛 0)
+    ctx.globalAlpha=1; ctx.fillStyle="#000"; ctx.beginPath(); ctx.arc(s.x,s.y,r,0,TAU); ctx.fill();
+  }
+}
+
+/* ============================ Net (MQTT — 사이드바 UI) ============================ */
+class Net{
+  constructor(sim){ this.sim=sim; this.client=null; this.connected=false; this.id=Math.random().toString(36).slice(2,8);
+    this.name=""; this.color=colorFor(this.id); this.topic=""; this.players=new Map(); this.awaitClock=false; this.lastCursor=0; this.lastPos=0; this._dirty=true; }
+  connect(name,room,broker){ if(typeof mqtt==="undefined"){ this.setStatus("err","라이브러리 실패"); return; }
+    this.name=name||("Explorer"+Math.floor(rand(10,99))); this.color=colorFor(this.id);
+    const sr=(room||"alpha").replace(/[^a-zA-Z0-9_-]/g,"").slice(0,24)||"alpha"; this.topic="orrery/room/"+sr;
+    this.setStatus("connecting","접속 중…");
+    try{ this.client=mqtt.connect(broker,{clientId:"orrery_"+this.id+Math.random().toString(36).slice(2,5),keepalive:30,reconnectPeriod:4000,connectTimeout:8000,will:{topic:this.topic,payload:JSON.stringify({t:"bye",id:this.id}),qos:0}}); }
+    catch(e){ this.setStatus("err","브로커 오류"); return; }
+    this.client.on("connect",()=>{ this.connected=true; this.setStatus("on","접속됨 · "+sr); this.client.subscribe(this.topic); this.awaitClock=true; this.pub({t:"hello",id:this.id,name:this.name,color:this.color}); this._bcast(); this._dirty=true; });
+    this.client.on("message",(_t,p)=>{ try{ this.onMsg(JSON.parse(p.toString())); }catch(e){} });
+    this.client.on("reconnect",()=>this.setStatus("connecting","재접속…"));
+    this.client.on("error",()=>this.setStatus("err","연결 오류"));
+    this.client.on("close",()=>{ if(this.connected) this.setStatus("connecting","끊김"); });
+  }
+  disconnect(){ if(this.client){ this.pub({t:"bye",id:this.id}); try{this.client.end(true);}catch(e){} } this.client=null; this.connected=false; this.players.clear(); this.sim.remoteBodies.clear(); this._dirty=true; this.setStatus("off","오프라인"); }
+  pub(o){ if(this.connected&&this.client) this.client.publish(this.topic,JSON.stringify(o)); }
+  _spawnMsg(b){ return {t:"spawn",id:this.id,bid:b.bid,kind:b.kind,wx:Math.round(b.wx),wy:Math.round(b.wy),vx:b.vx||0,vy:b.vy||0}; }
+  _bcast(){ for(const b of this.sim.bodies) if(b.bid) this.pub(this._spawnMsg(b)); }
+  onMsg(m){ if(m.id===this.id) return;
+    switch(m.t){
+      case "hello": this._touch(m); this.pub({t:"welcome",id:this.id,name:this.name,color:this.color,elapsedDays:this.sim.elapsedDays,timeWarp:this.sim.timeWarp}); this._bcast(); break;
+      case "welcome": this._touch(m); if(this.awaitClock){ this.sim.elapsedDays=m.elapsedDays; this.sim.setSpeed(m.timeWarp,false); this.awaitClock=false; } break;
+      case "cursor": this._touch(m); { const p=this.players.get(m.id); if(p){ p.tx=m.x; p.ty=m.y; } } break;
+      case "clock": this.sim.elapsedDays=m.elapsedDays; this.sim.setSpeed(m.timeWarp,false); break;
+      case "spawn": this.sim.addRemoteBody(m); break;
+      case "pos": this.sim.updateRemote(m); break;
+      case "despawn": this.sim.removeRemoteBody(m.bid); break;
+      case "planetdead": this.sim.planets=this.sim.planets.filter(p=>p.name!==m.name); break;
+      case "bye": this._remove(m.id); break;
+    }
+  }
+  _touch(m){ let p=this.players.get(m.id); if(!p){ p={name:m.name||"?",color:m.color||colorFor(m.id),x:0,y:0,tx:0,ty:0,lastSeen:now()}; this.players.set(m.id,p); this._dirty=true; } if(m.name)p.name=m.name; if(m.color)p.color=m.color; p.lastSeen=now(); }
+  _remove(id){ if(this.players.delete(id)) this._dirty=true; for(const [bid,rb] of this.sim.remoteBodies) if(rb.owner===id) this.sim.remoteBodies.delete(bid); }
+  tick(dt){ if(!this.connected) return; const t=now();
+    if(t-this.lastCursor>110){ this.lastCursor=t; const w=this.sim.cam.toWorld(this.sim.cursorS.x,this.sim.cursorS.y,this.sim.W/2,this.sim.H/2); this.pub({t:"cursor",id:this.id,name:this.name,color:this.color,x:Math.round(w.x),y:Math.round(w.y)}); }
+    if(t-this.lastPos>90){ this.lastPos=t; const items=[]; for(const b of this.sim.bodies) if(b.bid) items.push([b.bid,Math.round(b.wx),Math.round(b.wy)]); if(items.length) this.pub({t:"pos",id:this.id,items}); }
+    for(const [id,p] of this.players) if(t-p.lastSeen>6000) this._remove(id);
+    for(const [bid,rb] of this.sim.remoteBodies) if(t-rb.lastSeen>6000) this.sim.remoteBodies.delete(bid);
+    if(this._dirty){ this._roster(); this._dirty=false; }
+  }
+  setStatus(state,text){ const d=document.getElementById("mpDot"); d.className="dot"+(state==="on"?" on":state==="connecting"?" connecting":"");
+    document.getElementById("mpStatus") && (document.getElementById("mpStatus").textContent=text);
+    const b=document.getElementById("mpConnect"); b.classList.toggle("on",this.connected); b.textContent=this.connected?"나가기":"접속"; }
+  _roster(){ const box=document.getElementById("mpRoster"); box.innerHTML=""; if(!this.connected) return;
+    const chip=(n,c,me)=>{ const e=document.createElement("div"); e.className="chip"; e.innerHTML=`<span class="cd" style="background:${c};color:${c}"></span>${n}${me?" (나)":""}`; return e; };
+    box.appendChild(chip(this.name,this.color,true)); for(const [id,p] of this.players) box.appendChild(chip(p.name,p.color,false)); }
+  drawCursors(ctx,cam,cx,cy){ for(const [id,p] of this.players){ p.x=lerp(p.x,p.tx,0.3); p.y=lerp(p.y,p.ty,0.3); const s=cam.toScreen(p.x,p.y,cx,cy);
+    ctx.globalAlpha=0.95; ctx.strokeStyle=p.color; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(s.x,s.y,7,0,TAU); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(s.x,s.y-11);ctx.lineTo(s.x,s.y-4);ctx.moveTo(s.x,s.y+4);ctx.lineTo(s.x,s.y+11);ctx.moveTo(s.x-11,s.y);ctx.lineTo(s.x-4,s.y);ctx.moveTo(s.x+4,s.y);ctx.lineTo(s.x+11,s.y); ctx.stroke();
+    ctx.fillStyle=p.color; ctx.font="11px ui-monospace,monospace"; ctx.textAlign="left"; ctx.fillText(p.name,s.x+12,s.y+4); } ctx.globalAlpha=1; }
 }
 
 /* ============================ Simulation ============================ */
-class Simulation {
-  constructor(canvas){
-    this.canvas=canvas; this.ctx=canvas.getContext("2d");
-    this.cam=new Camera(); this.cam.zoom=0.95;
-    this.sun=new Sun(); this.planets=this._buildPlanets();
-    this.stars=[]; this.bodies=[];              // 내가 만든 천체
-    this.remoteBodies=new Map();                // bid -> {inst, owner, tx, ty, lastSeen}
-    this.timeWarp=1; this.daysPerSecAt1x=3; this.elapsedDays=0;
+class Simulation{
+  constructor(canvas){ this.canvas=canvas; this.ctx=canvas.getContext("2d"); this.cam=new Camera();
+    this.bg=new Background(); this.sun=new Sun(); this.planets=this._planets();
+    this.bodies=[]; this.remoteBodies=new Map(); this.timeWarp=1; this.daysPerSecAt1x=3; this.elapsedDays=0;
     this.selected=null; this.showOrbits=true; this.showLabels=true; this.spawnMode=null;
-    this.fps=60; this._fpsAcc=0; this._fpsFrames=0;
-    this.cursorS={x:innerWidth/2,y:innerHeight/2};
-    this._bidCounter=0;
+    this.fps=60; this._fa=0; this._ff=0; this.cursorS={x:innerWidth/2,y:innerHeight/2}; this._bid=0; this.gravNear=0;
     this.net=new Net(this);
+    this._resize(); this._input(); this._mp(); window.addEventListener("resize",()=>this._resize()); }
 
-    this._resize(); this._bindInput(); this._bindMP();
-    window.addEventListener("resize", ()=>this._resize());
-  }
-
-  _buildPlanets(){
+  _planets(){
     const D=[
-      { name:"수성", color:"#9a9a9a", radius:3.0, orbit:70,  periodDays:88,
-        info:{radius:"2,440 km",dist:"5,790만 km",period:"88일",rotation:"58.6일",moons:"0개",desc:"태양에 가장 가까운 가장 작은 행성. 낮과 밤의 온도 차가 극심합니다."} },
-      { name:"금성", color:"#e3c87a", radius:5.2, orbit:105, periodDays:225,
-        info:{radius:"6,052 km",dist:"1억 820만 km",period:"225일",rotation:"243일 (역행)",moons:"0개",desc:"두꺼운 이산화탄소 대기의 온실효과로 태양계에서 가장 뜨거운 행성."} },
-      { name:"지구", color:"#3a86d6", radius:5.5, orbit:145, periodDays:365,
-        info:{radius:"6,371 km",dist:"1억 4,960만 km",period:"365일",rotation:"24시간",moons:"1개 (달)",desc:"생명체가 존재하는 것으로 확인된 유일한 행성. 표면에 액체 상태의 물이 존재합니다."} },
-      { name:"화성", color:"#d1593b", radius:4.0, orbit:185, periodDays:687,
-        info:{radius:"3,390 km",dist:"2억 2,790만 km",period:"687일",rotation:"24.6시간",moons:"2개",desc:"산화철로 붉게 보이는 행성. 태양계 최대 화산 올림푸스 몬스가 있습니다."} },
-      { name:"목성", color:"#c9a06b", radius:13, orbit:265, periodDays:4333,
-        info:{radius:"69,911 km",dist:"7억 7,850만 km",period:"11.9년",rotation:"9.9시간",moons:"95개",desc:"태양계에서 가장 큰 행성. 거대 가스 행성이며 대적점이라는 거대한 폭풍이 있습니다."} },
-      { name:"토성", color:"#dcc89a", radius:11, orbit:340, periodDays:10759, hasRing:true,
-        info:{radius:"58,232 km",dist:"14억 3,400만 km",period:"29.5년",rotation:"10.7시간",moons:"146개",desc:"장엄한 고리로 유명한 가스 행성. 고리는 대부분 얼음과 암석 조각으로 이루어져 있습니다."} },
-      { name:"천왕성", color:"#8fd6e0", radius:8, orbit:400, periodDays:30687,
-        info:{radius:"25,362 km",dist:"28억 7,100만 km",period:"84년",rotation:"17.2시간",moons:"28개",desc:"옆으로 누워 자전하는 얼음 거대 행성. 메테인 대기로 청록색을 띱니다."} },
-      { name:"해왕성", color:"#2f5bd6", radius:7.8, orbit:455, periodDays:60190,
-        info:{radius:"24,622 km",dist:"44억 9,500만 km",period:"165년",rotation:"16.1시간",moons:"16개",desc:"가장 바깥쪽의 얼음 거대 행성. 태양계에서 가장 강력한 바람이 부는 곳입니다."} },
+      {name:"수성",color:"#9a9a9a",radius:4,orbit:120,periodDays:88,
+        info:{radius:"2,440 km",dist:"5,790만 km",speed:"47.4 km/s",mass:"3.30 × 10²³ kg",gravity:"3.7 m/s²",temp:"평균 167 °C",period:"88일",rotation:"58.6일",moons:"0개",desc:"태양에 가장 가까운 최소 행성. 대기가 거의 없어 낮과 밤의 온도 차가 600°C에 달합니다."}},
+      {name:"금성",color:"#e3c87a",radius:7,orbit:200,periodDays:225,atmo:"rgba(255,220,150,0.25)",
+        info:{radius:"6,052 km",dist:"1억 820만 km",speed:"35.0 km/s",mass:"4.87 × 10²⁴ kg",gravity:"8.87 m/s²",temp:"평균 464 °C",period:"225일",rotation:"243일 (역행)",moons:"0개",desc:"두꺼운 이산화탄소 대기의 폭주 온실효과로 태양계에서 가장 뜨거운 행성."}},
+      {name:"지구",color:"#3a86d6",radius:7.5,orbit:300,periodDays:365,atmo:"rgba(90,160,255,0.3)",earth:true,
+        info:{radius:"6,371 km",dist:"1억 4,960만 km",speed:"29.8 km/s",mass:"5.97 × 10²⁴ kg",gravity:"9.81 m/s²",temp:"평균 15 °C",period:"365일",rotation:"24시간",moons:"1개 (달)",desc:"생명체가 존재하는 것으로 확인된 유일한 행성. 표면의 71%가 액체 상태의 물로 덮여 있습니다."}},
+      {name:"화성",color:"#d1593b",radius:5,orbit:440,periodDays:687,atmo:"rgba(255,140,90,0.15)",
+        info:{radius:"3,390 km",dist:"2억 2,790만 km",speed:"24.1 km/s",mass:"6.42 × 10²³ kg",gravity:"3.71 m/s²",temp:"평균 -63 °C",period:"687일",rotation:"24.6시간",moons:"2개",desc:"산화철로 붉게 보이는 행성. 태양계 최대 화산 올림푸스 몬스(높이 22km)가 있습니다."}},
+      {name:"목성",color:"#c9a06b",radius:26,orbit:820,periodDays:4333,bands:true,spot:true,
+        info:{radius:"69,911 km",dist:"7억 7,850만 km",speed:"13.1 km/s",mass:"1.90 × 10²⁷ kg",gravity:"24.79 m/s²",temp:"평균 -110 °C",period:"11.9년",rotation:"9.9시간",moons:"95개",desc:"태양계 최대 행성. 대적점은 지구 2~3개가 들어가는 거대한 폭풍으로 수백 년째 지속 중입니다."}},
+      {name:"토성",color:"#dcc89a",radius:22,orbit:1300,periodDays:10759,hasRing:true,bands:true,
+        info:{radius:"58,232 km",dist:"14억 3,400만 km",speed:"9.7 km/s",mass:"5.68 × 10²⁶ kg",gravity:"10.44 m/s²",temp:"평균 -140 °C",period:"29.5년",rotation:"10.7시간",moons:"146개",desc:"장엄한 고리로 유명한 가스 행성. 고리는 얼음과 암석 조각으로 이루어져 폭이 28만 km에 달합니다."}},
+      {name:"천왕성",color:"#8fd6e0",radius:15,orbit:2000,periodDays:30687,atmo:"rgba(140,220,230,0.2)",
+        info:{radius:"25,362 km",dist:"28억 7,100만 km",speed:"6.8 km/s",mass:"8.68 × 10²⁵ kg",gravity:"8.87 m/s²",temp:"평균 -195 °C",period:"84년",rotation:"17.2시간",moons:"28개",desc:"자전축이 98° 기울어 옆으로 누워 구르는 얼음 거대 행성. 메테인이 적색광을 흡수해 청록색을 띱니다."}},
+      {name:"해왕성",color:"#2f5bd6",radius:14,orbit:2900,periodDays:60190,atmo:"rgba(80,120,255,0.25)",
+        info:{radius:"24,622 km",dist:"44억 9,500만 km",speed:"5.4 km/s",mass:"1.02 × 10²⁶ kg",gravity:"11.15 m/s²",temp:"평균 -200 °C",period:"165년",rotation:"16.1시간",moons:"16개",desc:"가장 바깥의 얼음 거대 행성. 초속 600m에 이르는 태양계에서 가장 강력한 바람이 붑니다."}},
     ];
-    // 결정적 초기 각도(angle0) → 모든 클라이언트가 동일하게 시작
-    return D.map((d,i)=> new Planet({...d, angle0:i*0.7}));
-  }
+    return D.map((d,i)=> new Planet({...d,angle0:i*0.8,spinDir:i===1?-1:1})); }
 
-  _resize(){
-    const dpr=Math.min(window.devicePixelRatio||1,2);
-    this.W=innerWidth; this.H=innerHeight;
-    this.canvas.width=this.W*dpr; this.canvas.height=this.H*dpr;
-    this.canvas.style.width=this.W+"px"; this.canvas.style.height=this.H+"px";
-    this.ctx.setTransform(dpr,0,0,dpr,0,0);
-    const count=Math.floor((this.W*this.H)/1600);
-    this.stars=Array.from({length:clamp(count,120,520)}, ()=> new Star(this.W,this.H));
-  }
+  _resize(){ const dpr=Math.min(window.devicePixelRatio||1,2); this.W=innerWidth; this.H=innerHeight;
+    this.canvas.width=this.W*dpr; this.canvas.height=this.H*dpr; this.canvas.style.width=this.W+"px"; this.canvas.style.height=this.H+"px";
+    this.ctx.setTransform(dpr,0,0,dpr,0,0); this.bg.build(this.W,this.H); }
 
-  /* ----------------------------- 입력 ----------------------------- */
-  _bindInput(){
-    const cv=this.canvas;
-    let dragging=false, moved=false, lastX=0, lastY=0, lastTap=0, pinch=0;
-
-    cv.addEventListener("wheel",(e)=>{ e.preventDefault(); this._zoomAt(e.clientX,e.clientY, e.deltaY<0?1.12:1/1.12); },{passive:false});
-
-    cv.addEventListener("mousedown",(e)=>{ dragging=true; moved=false; lastX=e.clientX; lastY=e.clientY; });
-    window.addEventListener("mousemove",(e)=>{ this.cursorS={x:e.clientX,y:e.clientY}; if(!dragging) return; const dx=e.clientX-lastX,dy=e.clientY-lastY; if(Math.abs(dx)+Math.abs(dy)>3) moved=true; this._pan(dx,dy); lastX=e.clientX; lastY=e.clientY; });
-    window.addEventListener("mouseup",(e)=>{ if(dragging&&!moved) this._click(e.clientX,e.clientY); dragging=false; });
-    cv.addEventListener("dblclick",(e)=> this._double(e.clientX,e.clientY));
-
-    cv.addEventListener("touchstart",(e)=>{ if(e.touches.length===1){ dragging=true; moved=false; lastX=e.touches[0].clientX; lastY=e.touches[0].clientY; this.cursorS={x:lastX,y:lastY}; } else if(e.touches.length===2){ dragging=false; pinch=this._tdist(e.touches); } },{passive:false});
+  /* ----------- 입력 ----------- */
+  _input(){ const cv=this.canvas; let drag=false,moved=false,lx=0,ly=0,lastTap=0,pinch=0,vx=0,vy=0;
+    cv.addEventListener("wheel",(e)=>{ e.preventDefault(); this._zoom(e.clientX,e.clientY,e.deltaY<0?1.18:1/1.18); },{passive:false});
+    cv.addEventListener("mousedown",(e)=>{ drag=true; moved=false; lx=e.clientX; ly=e.clientY; this.cam.target=null; });
+    window.addEventListener("mousemove",(e)=>{ this.cursorS={x:e.clientX,y:e.clientY}; if(!drag) return; const dx=e.clientX-lx,dy=e.clientY-ly; if(Math.abs(dx)+Math.abs(dy)>3) moved=true; this._pan(dx,dy); vx=-dx/this.cam.zoom; vy=-dy/this.cam.zoom; lx=e.clientX; ly=e.clientY; });
+    window.addEventListener("mouseup",(e)=>{ if(drag&&!moved) this._click(e.clientX,e.clientY); else if(drag&&moved){ this.cam.vx=vx; this.cam.vy=vy; } drag=false; });
+    cv.addEventListener("dblclick",(e)=>this._double(e.clientX,e.clientY));
+    cv.addEventListener("touchstart",(e)=>{ if(e.touches.length===1){ drag=true; moved=false; lx=e.touches[0].clientX; ly=e.touches[0].clientY; this.cursorS={x:lx,y:ly}; this.cam.target=null; } else if(e.touches.length===2){ drag=false; pinch=this._td(e.touches); } },{passive:false});
     cv.addEventListener("touchmove",(e)=>{ e.preventDefault();
-      if(e.touches.length===1&&dragging){ const t=e.touches[0]; this.cursorS={x:t.clientX,y:t.clientY}; const dx=t.clientX-lastX,dy=t.clientY-lastY; if(Math.abs(dx)+Math.abs(dy)>3) moved=true; this._pan(dx,dy); lastX=t.clientX; lastY=t.clientY; }
-      else if(e.touches.length===2){ const nd=this._tdist(e.touches), mid=this._tmid(e.touches); this._zoomAt(mid.x,mid.y,nd/pinch); pinch=nd; } },{passive:false});
-    cv.addEventListener("touchend",(e)=>{ if(dragging&&!moved&&e.changedTouches.length){ const t=e.changedTouches[0]; const n=Date.now(); if(n-lastTap<300) this._double(t.clientX,t.clientY); else this._click(t.clientX,t.clientY); lastTap=n; } dragging=false; });
+      if(e.touches.length===1&&drag){ const t=e.touches[0]; this.cursorS={x:t.clientX,y:t.clientY}; const dx=t.clientX-lx,dy=t.clientY-ly; if(Math.abs(dx)+Math.abs(dy)>3) moved=true; this._pan(dx,dy); vx=-dx/this.cam.zoom; vy=-dy/this.cam.zoom; lx=t.clientX; ly=t.clientY; }
+      else if(e.touches.length===2){ const nd=this._td(e.touches),mid=this._tm(e.touches); this._zoom(mid.x,mid.y,nd/pinch); pinch=nd; } },{passive:false});
+    cv.addEventListener("touchend",(e)=>{ if(drag&&!moved&&e.changedTouches.length){ const t=e.changedTouches[0],n=Date.now(); if(n-lastTap<300) this._double(t.clientX,t.clientY); else this._click(t.clientX,t.clientY); lastTap=n; } else if(drag&&moved){ this.cam.vx=vx; this.cam.vy=vy; } drag=false; });
 
-    document.querySelectorAll("#topbar .tbtn").forEach(b=> b.addEventListener("click", ()=> this.setSpeed(parseInt(b.dataset.speed,10), true)));
-    document.getElementById("infoClose").addEventListener("click", ()=> this._deselect());
-    document.getElementById("spAst").addEventListener("click", ()=> this._setSpawn("asteroid","소행성 생성"));
-    document.getElementById("spCom").addEventListener("click", ()=> this._setSpawn("comet","혜성 생성"));
-    document.getElementById("spBh").addEventListener("click",  ()=> this._setSpawn("blackhole","블랙홀 생성"));
+    document.querySelectorAll("#top .tb").forEach(b=>b.addEventListener("click",()=>this.setSpeed(parseInt(b.dataset.speed,10),true)));
+    document.getElementById("infoX").addEventListener("click",()=>this._deselect());
+    document.getElementById("spAst").addEventListener("click",()=>this._spawn("asteroid","소행성"));
+    document.getElementById("spCom").addEventListener("click",()=>this._spawn("comet","혜성"));
+    document.getElementById("spBh").addEventListener("click",()=>this._spawn("blackhole","블랙홀"));
+    document.getElementById("spSn").addEventListener("click",()=>this._spawn("supernova","초신성"));
     document.getElementById("tgOrbit").addEventListener("click",(e)=>{ this.showOrbits=!this.showOrbits; e.currentTarget.classList.toggle("on",this.showOrbits); });
     document.getElementById("tgLabel").addEventListener("click",(e)=>{ this.showLabels=!this.showLabels; e.currentTarget.classList.toggle("on",this.showLabels); });
-    document.getElementById("resetView").addEventListener("click", ()=>{ this.cam.target=null; this.cam.x=0; this.cam.y=0; this.cam.zoom=0.95; document.getElementById("tTarget").textContent="SUN"; });
-
-    const hideHint=()=>{ const h=document.getElementById("hint"); if(h) h.style.opacity="0"; };
-    cv.addEventListener("pointerdown", hideHint, {once:true});
+    document.getElementById("reset").addEventListener("click",()=>{ this.cam.target=null; this.cam.x=0; this.cam.y=0; this.cam.tz=0.55; this.cam.vx=this.cam.vy=0; document.getElementById("hTarget").textContent="SUN"; });
+    cv.addEventListener("pointerdown",()=>{ const h=document.getElementById("hint"); if(h) h.style.opacity="0"; },{once:true});
   }
-
-  /* 멀티플레이 패널 바인딩 */
-  _bindMP(){
-    document.getElementById("mpName").value="Explorer"+Math.floor(rand(10,99));
-    document.getElementById("mpRoom").value="alpha";
-    document.getElementById("mpBroker").value="wss://broker.emqx.io:8084/mqtt";
-    document.getElementById("mpHead").addEventListener("click",(e)=>{ if(e.target.tagName==="INPUT") return; document.getElementById("mp").classList.toggle("collapsed"); });
-    document.getElementById("mpConnect").addEventListener("click",(e)=>{
-      e.stopPropagation();
-      if(this.net.connected){ this.net.disconnect(); }
-      else { this.net.connect(document.getElementById("mpName").value.trim(), document.getElementById("mpRoom").value.trim(), document.getElementById("mpBroker").value.trim()); }
-    });
-    window.addEventListener("beforeunload", ()=>{ if(this.net.connected) this.net.disconnect(); });
+  _mp(){ document.getElementById("mpName").value="Explorer"+Math.floor(rand(10,99)); document.getElementById("mpRoom").value="alpha"; document.getElementById("mpBroker").value="wss://broker.emqx.io:8084/mqtt";
+    // 상태 텍스트용 보조 span 삽입
+    const st=document.createElement("span"); st.id="mpStatus"; st.style.cssText="display:block;font-family:var(--mono);font-size:9px;color:var(--dim);margin:-8px 0 12px;"; document.querySelector(".mp-inner h3").after(st); st.textContent="오프라인";
+    document.getElementById("mpTab").addEventListener("click",()=>document.getElementById("mp").classList.toggle("open"));
+    document.getElementById("mpConnect").addEventListener("click",(e)=>{ e.stopPropagation(); if(this.net.connected) this.net.disconnect(); else this.net.connect(document.getElementById("mpName").value.trim(),document.getElementById("mpRoom").value.trim(),document.getElementById("mpBroker").value.trim()); });
+    window.addEventListener("beforeunload",()=>{ if(this.net.connected) this.net.disconnect(); });
   }
-
-  _tdist(t){ return Math.hypot(t[0].clientX-t[1].clientX, t[0].clientY-t[1].clientY); }
-  _tmid(t){ return {x:(t[0].clientX+t[1].clientX)/2, y:(t[0].clientY+t[1].clientY)/2}; }
-
-  _zoomAt(sx,sy,f){
-    const b=this.cam.toWorld(sx,sy,this.W/2,this.H/2);
-    this.cam.zoom=clamp(this.cam.zoom*f,0.12,12);
-    const a=this.cam.toWorld(sx,sy,this.W/2,this.H/2);
-    this.cam.x+=b.x-a.x; this.cam.y+=b.y-a.y;
-  }
-  _pan(dx,dy){ this.cam.target=null; document.getElementById("tTarget").textContent=this.selected?this.selected.name.toUpperCase():"FREE"; this.cam.x-=dx/this.cam.zoom; this.cam.y-=dy/this.cam.zoom; }
+  _td(t){ return Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY); }
+  _tm(t){ return {x:(t[0].clientX+t[1].clientX)/2,y:(t[0].clientY+t[1].clientY)/2}; }
+  _zoom(sx,sy,f){ const b=this.cam.toWorld(sx,sy,this.W/2,this.H/2); this.cam.tz=clamp(this.cam.tz*f,0.03,8); this.cam.zoom=clamp(this.cam.zoom*f,0.03,8); const a=this.cam.toWorld(sx,sy,this.W/2,this.H/2); this.cam.x+=b.x-a.x; this.cam.y+=b.y-a.y; }
+  _pan(dx,dy){ this.cam.target=null; document.getElementById("hTarget").textContent=this.selected?this.selected.name.toUpperCase():"FREE"; this.cam.x-=dx/this.cam.zoom; this.cam.y-=dy/this.cam.zoom; }
 
   _click(sx,sy){ if(this.spawnMode){ this._spawnAt(sx,sy); return; } const h=this._pick(sx,sy); h?this._select(h):this._deselect(); }
-  _double(sx,sy){
-    const h=this._pick(sx,sy);
-    if(h&&h!==this.sun){ this.cam.target=h; this._select(h); document.getElementById("tTarget").textContent=h.name.toUpperCase(); }
-    else if(h===this.sun){ this.cam.target=null; this.cam.x=0; this.cam.y=0; this._select(this.sun); document.getElementById("tTarget").textContent="SUN"; }
-  }
-  _pick(sx,sy){
-    for(const b of [this.sun,...this.planets]){ const s=this.cam.toScreen(b.wx,b.wy,this.W/2,this.H/2); const r=Math.max(10,b.radius*this.cam.zoom); if(Math.hypot(sx-s.x,sy-s.y)<=r+6) return b; }
-    return null;
-  }
-  _select(b){
-    this.selected=b; const info=b.info;
-    document.getElementById("infoTag").textContent=b.type;
-    document.getElementById("infoName").textContent=b.name;
-    document.getElementById("infoDesc").textContent=info.desc;
-    const sw=document.getElementById("infoSwatch"); sw.style.background=b.color; sw.style.color=b.color;
-    document.getElementById("infoStats").innerHTML=`
-      <div class="stat"><span class="k">반지름</span><span class="v">${info.radius}</span></div>
-      <div class="stat"><span class="k">태양과 거리</span><span class="v">${info.dist}</span></div>
-      <div class="stat"><span class="k">공전주기</span><span class="v">${info.period}</span></div>
-      <div class="stat"><span class="k">자전주기</span><span class="v">${info.rotation}</span></div>
-      <div class="stat"><span class="k">위성 수</span><span class="v">${info.moons}</span></div>`;
-    document.getElementById("info").classList.add("show");
-  }
+  _double(sx,sy){ const h=this._pick(sx,sy); if(h&&h!==this.sun){ this.cam.target=h; this.cam.tz=clamp(2.2,0.03,8); this._select(h); document.getElementById("hTarget").textContent=h.name.toUpperCase(); }
+    else if(h===this.sun){ this.cam.target=null; this.cam.x=0; this.cam.y=0; this.cam.tz=0.55; this._select(this.sun); document.getElementById("hTarget").textContent="SUN"; } }
+  _pick(sx,sy){ for(const b of [this.sun,...this.planets]){ const s=this.cam.toScreen(b.wx,b.wy,this.W/2,this.H/2); const r=Math.max(12,b.radius*this.cam.zoom); if(Math.hypot(sx-s.x,sy-s.y)<=r+6) return b; } return null; }
+  _select(b){ this.selected=b; const i=b.info; document.getElementById("iTag").textContent=b.type; document.getElementById("iName").textContent=b.name; document.getElementById("iDesc").textContent=i.desc;
+    const sw=document.getElementById("iSw"); sw.style.background=b.color; sw.style.color=b.color;
+    const rows=[["반지름",i.radius],["태양과 거리",i.dist],["공전 속도",i.speed],["질량",i.mass],["표면 중력",i.gravity],["온도",i.temp],["공전주기",i.period],["자전주기",i.rotation],["위성 수",i.moons]];
+    document.getElementById("iStats").innerHTML=rows.map(([k,v])=>`<div class="st"><span class="k">${k}</span><span class="v">${v}</span></div>`).join("");
+    const el=document.getElementById("info"); el.classList.remove("show"); void el.offsetWidth; el.classList.add("show"); }
   _deselect(){ this.selected=null; document.getElementById("info").classList.remove("show"); }
 
-  // setSpeed: broadcast=true면 다른 플레이어에게도 전파(시간 동기화)
-  setSpeed(v, broadcast){
-    this.timeWarp=v;
-    document.querySelectorAll("#topbar .tbtn").forEach(b=> b.classList.toggle("active", parseInt(b.dataset.speed,10)===v));
-    document.getElementById("tWarp").textContent = v===0?"정지":v+"×";
-    if(broadcast && this.net.connected) this.net.pub({t:"clock", id:this.net.id, elapsedDays:this.elapsedDays, timeWarp:v});
-  }
+  setSpeed(v,broadcast){ this.timeWarp=v; document.querySelectorAll("#top .tb").forEach(b=>b.classList.toggle("active",parseInt(b.dataset.speed,10)===v)); document.getElementById("hWarp").textContent=v===0?"PAUSE":v+"×"; if(broadcast&&this.net.connected) this.net.pub({t:"clock",id:this.net.id,elapsedDays:this.elapsedDays,timeWarp:v}); }
 
-  _setSpawn(mode,label){
-    if(this.spawnMode===mode){ this._clearSpawn(); return; }
-    this.spawnMode=mode; document.getElementById("spawnText").textContent=label;
-    document.getElementById("spawnBanner").classList.add("show"); this.canvas.style.cursor="crosshair";
-  }
-  _clearSpawn(){ this.spawnMode=null; document.getElementById("spawnBanner").classList.remove("show"); this.canvas.style.cursor="grab"; }
-
-  _spawnAt(sx,sy){
-    const w=this.cam.toWorld(sx,sy,this.W/2,this.H/2);
-    let b;
+  _spawn(mode,label){ if(this.spawnMode===mode){ this._clear(); return; } this.spawnMode=mode; document.getElementById("bannerTxt").textContent=label+" 생성"; document.getElementById("banner").classList.add("show"); this.canvas.style.cursor="crosshair"; }
+  _clear(){ this.spawnMode=null; document.getElementById("banner").classList.remove("show"); this.canvas.style.cursor="grab"; }
+  _spawnAt(sx,sy){ const w=this.cam.toWorld(sx,sy,this.W/2,this.H/2); let b;
     if(this.spawnMode==="asteroid") b=new Asteroid(w.x,w.y);
     else if(this.spawnMode==="comet") b=new Comet(w.x,w.y);
     else if(this.spawnMode==="blackhole") b=new BlackHole(w.x,w.y);
-    b.bid=this.net.id+"-"+(this._bidCounter++);   // 고유 id 부여(소유자=나)
-    this.bodies.push(b);
-    if(this.net.connected) this.net.pub(this.net._spawnMsg(b));   // 즉시 공유
-    this._clearSpawn();
-  }
+    else if(this.spawnMode==="supernova") b=new Supernova(w.x,w.y);
+    b.bid=this.net.id+"-"+(this._bid++); this.bodies.push(b);
+    if(this.net.connected && b.kind!=="supernova") this.net.pub(this.net._spawnMsg(b)); this._clear(); }
 
-  /* 원격 천체 추가/갱신/삭제 */
-  addRemoteBody(m){
-    let rb=this.remoteBodies.get(m.bid);
-    if(!rb){
-      let inst;
-      if(m.kind==="asteroid") inst=new Asteroid(m.wx,m.wy);
-      else if(m.kind==="comet") inst=new Comet(m.wx,m.wy);
-      else inst=new BlackHole(m.wx,m.wy);
-      inst.bid=m.bid;
-      rb={inst, owner:m.id, tx:m.wx, ty:m.wy, lastSeen:now()};
-      this.remoteBodies.set(m.bid, rb);
-    } else { rb.tx=m.wx; rb.ty=m.wy; rb.lastSeen=now(); }
-  }
-  updateRemote(m){
-    for(const [bid,wx,wy] of m.items){ const rb=this.remoteBodies.get(bid); if(rb){ rb.tx=wx; rb.ty=wy; rb.lastSeen=now(); } }
-  }
+  addRemoteBody(m){ let rb=this.remoteBodies.get(m.bid); if(!rb){ let inst; if(m.kind==="asteroid")inst=new Asteroid(m.wx,m.wy); else if(m.kind==="comet")inst=new Comet(m.wx,m.wy); else inst=new BlackHole(m.wx,m.wy); inst.bid=m.bid; rb={inst,owner:m.id,tx:m.wx,ty:m.wy,lastSeen:now()}; this.remoteBodies.set(m.bid,rb); } else { rb.tx=m.wx; rb.ty=m.wy; rb.lastSeen=now(); } }
+  updateRemote(m){ for(const [bid,wx,wy] of m.items){ const rb=this.remoteBodies.get(bid); if(rb){ rb.tx=wx; rb.ty=wy; rb.lastSeen=now(); } } }
   removeRemoteBody(bid){ this.remoteBodies.delete(bid); }
 
-  /* ----------------------------- 물리 ----------------------------- */
-  update(dt){
-    const dtDays=this.timeWarp*this.daysPerSecAt1x*dt;
-    if(dtDays>0) this.elapsedDays+=dtDays;
-    this.planets.forEach(p=> p.update(this.elapsedDays));     // 절대 시간 기반(동기화)
+  /* ----------- 물리 ----------- */
+  update(dt){ const dtDays=this.timeWarp*this.daysPerSecAt1x*dt; if(dtDays>0) this.elapsedDays+=dtDays;
+    this.sun.update(dt); this.bg.update(dt,this.W,this.H);
+    this.planets.forEach(p=>p.update(this.elapsedDays,dtDays));
+    for(const [bid,rb] of this.remoteBodies){ rb.inst.wx=lerp(rb.inst.wx,rb.tx,0.3); rb.inst.wy=lerp(rb.inst.wy,rb.ty,0.3); if(rb.inst.kind==="comet")rb.inst._push(); if(rb.inst.kind==="asteroid")rb.inst.spin+=dtDays; }
 
-    // 원격 천체: 물리 없이 위치 보간만 (소유자가 보낸 좌표로)
-    for(const [bid,rb] of this.remoteBodies){
-      rb.inst.wx+=(rb.tx-rb.inst.wx)*0.3; rb.inst.wy+=(rb.ty-rb.inst.wy)*0.3;
-      if(rb.inst.kind==="comet") rb.inst._push();
-      if(rb.inst.kind==="asteroid") rb.inst.spin+=dtDays;
-    }
-
-    // 모든 블랙홀(내 것 + 원격) → 내 천체에 중력 적용
-    const holes=[];
-    for(const b of this.bodies) if(b instanceof BlackHole) holes.push(b);
-    for(const [bid,rb] of this.remoteBodies) if(rb.inst instanceof BlackHole) holes.push(rb.inst);
-
-    for(const b of this.bodies){
-      if(b instanceof BlackHole){ b.update(dtDays); continue; }
-      for(const h of holes){ const d=h.applyGravity(b,dtDays); if(d<h.radius+4) b.dead=true; }  // 흡수
-      b.update(dtDays);
-    }
-    // 내 블랙홀이 행성/태양과 충돌하면 소멸(태양계 보호)
-    for(const b of this.bodies){
-      if(!(b instanceof BlackHole)) continue;
-      for(const p of this.planets){ if(Math.hypot(b.wx-p.wx,b.wy-p.wy)<b.radius+p.radius) b.dead=true; }
-      if(Math.hypot(b.wx,b.wy)<this.sun.radius+b.radius) b.dead=true;
-    }
-    // 죽은 내 천체: 동기화로 삭제 알림
-    for(const b of this.bodies){ if(b.dead && b.bid && this.net.connected) this.net.pub({t:"despawn", id:this.net.id, bid:b.bid}); }
+    const holes=[]; for(const b of this.bodies) if(b instanceof BlackHole) holes.push(b); for(const [bid,rb] of this.remoteBodies) if(rb.inst instanceof BlackHole) holes.push(rb.inst);
+    // 행성 포획/파괴
+    if(holes.length&&dtDays>0){ for(const p of this.planets){ if(p.dead) continue; for(const h of holes){ const dx=h.wx-p.wx,dy=h.wy-p.wy,d=Math.hypot(dx,dy); if(d<h.radius*12&&!p.captured) p.capture(); if(p.captured){ const f=(h.pull/(dx*dx+dy*dy+60))*dtDays*60; p.vx+=dx/d*f; p.vy+=dy/d*f; } if(d<h.radius+p.radius+2) p.dead=true; } } }
+    const dead=this.planets.filter(p=>p.dead); if(dead.length){ this.planets=this.planets.filter(p=>!p.dead); if(this.net.connected) dead.forEach(p=>this.net.pub({t:"planetdead",id:this.net.id,name:p.name})); }
+    // 소행성/혜성/초신성
+    for(const b of this.bodies){ if(b instanceof BlackHole){ b.update(dt); continue; } if(b instanceof Supernova){ b.update(dt); continue; } for(const h of holes){ const d=h.applyGravity(b,dtDays); if(d<h.radius+4) b.dead=true; } b.update(dtDays); }
+    for(const b of this.bodies){ if(!(b instanceof BlackHole)) continue; if(Math.hypot(b.wx,b.wy)<this.sun.radius+b.radius) b.dead=true; }
+    for(const b of this.bodies){ if(b.dead&&b.bid&&this.net.connected&&b.kind!=="supernova") this.net.pub({t:"despawn",id:this.net.id,bid:b.bid}); }
     this.bodies=this.bodies.filter(b=>!b.dead);
 
-    this.net.tick(dt);
-    this.cam.follow();
+    // 카메라 근처 중력장(비네트 강화)
+    let near=0; for(const h of holes){ const dx=h.wx-this.cam.x,dy=h.wy-this.cam.y,d=Math.hypot(dx,dy); near=Math.max(near,clamp(1-d/(h.radius*20),0,1)); }
+    this.gravNear=lerp(this.gravNear,near,0.1);
+    document.getElementById("vignette").style.boxShadow=`inset 0 0 ${220+this.gravNear*260}px ${40+this.gravNear*120}px rgba(0,0,0,${0.55+this.gravNear*0.4})`;
+
+    this.net.tick(dt); this.cam.step();
   }
 
-  /* ----------------------------- 렌더 ----------------------------- */
-  render(t){
-    const ctx=this.ctx, cx=this.W/2, cy=this.H/2;
-    const bg=ctx.createRadialGradient(cx,cy,0,cx,cy,Math.max(this.W,this.H));
-    bg.addColorStop(0,"#0a1024"); bg.addColorStop(1,"#04050a");
-    ctx.fillStyle=bg; ctx.fillRect(0,0,this.W,this.H);
+  /* ----------- 렌더 ----------- */
+  render(t){ const ctx=this.ctx,cx=this.W/2,cy=this.H/2;
+    const bg=ctx.createRadialGradient(cx,cy,0,cx,cy,Math.max(this.W,this.H)*0.9);
+    bg.addColorStop(0,"#070b1c"); bg.addColorStop(1,"#02030a"); ctx.fillStyle=bg; ctx.fillRect(0,0,this.W,this.H);
 
-    for(const s of this.stars) s.draw(ctx,t,this.cam.x,this.cam.y);
-    ctx.globalAlpha=1;
+    this.bg.draw(ctx,this.cam,t,this.W,this.H);
+    // 렌즈용 블랙홀 화면정보
+    const lens=[]; for(const b of this.bodies) if(b instanceof BlackHole) lens.push(b.lensInfo(this.cam,cx,cy)); for(const [bid,rb] of this.remoteBodies) if(rb.inst instanceof BlackHole) lens.push(rb.inst.lensInfo(this.cam,cx,cy));
+    this.bg.drawStars(ctx,this.cam,t,this.W,this.H,lens);
 
-    if(this.showOrbits) this.planets.forEach(p=> p.drawOrbit(ctx,this.cam,cx,cy));
+    if(this.showOrbits) this.planets.forEach(p=>{ if(!p.captured) p.drawOrbit(ctx,this.cam,cx,cy); });
     this.sun.draw(ctx,this.cam,cx,cy,t);
-    this.planets.forEach(p=> p.draw(ctx,this.cam,cx,cy,this.selected===p,this.showLabels));
+    this.planets.forEach(p=>{ p.draw(ctx,this.cam,cx,cy,this.selected===p,this.showLabels,t);
+      if(p.captured){ const s=this.cam.toScreen(p.wx,p.wy,cx,cy),r=Math.max(4,p.radius*this.cam.zoom); const w=ctx.createRadialGradient(s.x,s.y,r,s.x,s.y,r*3); w.addColorStop(0,"rgba(255,80,60,0.5)"); w.addColorStop(1,"rgba(255,40,20,0)"); ctx.globalAlpha=0.6+0.4*Math.sin(t*6); ctx.fillStyle=w; ctx.beginPath(); ctx.arc(s.x,s.y,r*3,0,TAU); ctx.fill(); ctx.globalAlpha=1; } });
 
-    for(const [bid,rb] of this.remoteBodies) rb.inst.draw(ctx,this.cam,cx,cy);   // 원격 천체
-    for(const b of this.bodies) b.draw(ctx,this.cam,cx,cy);                      // 내 천체
+    for(const [bid,rb] of this.remoteBodies) rb.inst.draw(ctx,this.cam,cx,cy,t);
+    for(const b of this.bodies) b.draw(ctx,this.cam,cx,cy,t);
     ctx.globalAlpha=1;
-
-    this.net.drawCursors(ctx,this.cam,cx,cy);   // 다른 플레이어 커서
+    this.net.drawCursors(ctx,this.cam,cx,cy);
   }
 
-  _telemetry(){
-    document.getElementById("tPlayers").textContent = this.net.connected ? (this.net.players.size+1) : 1;
-    document.getElementById("tBodies").textContent = this.bodies.length + this.remoteBodies.size;
-    document.getElementById("tFps").textContent = Math.round(this.fps);
-    const yr=Math.floor(this.elapsedDays/365), d=Math.floor(this.elapsedDays%365);
-    document.getElementById("tElapsed").textContent = yr>0?`${yr}년 ${d}일`:`${d}일`;
-  }
+  _hud(){ document.getElementById("hCrew").textContent=this.net.connected?(this.net.players.size+1):1;
+    document.getElementById("hFps").textContent=Math.round(this.fps);
+    const yr=Math.floor(this.elapsedDays/365),d=Math.floor(this.elapsedDays%365);
+    document.getElementById("hElapsed").textContent=yr>0?`${yr}y ${d}d`:`${d}d`; }
 
-  start(){
-    let last=performance.now();
-    const loop=(t)=>{
-      let dt=(t-last)/1000; last=t; dt=Math.min(dt,0.05);
-      this._fpsAcc+=dt; this._fpsFrames++;
-      if(this._fpsAcc>=0.5){ this.fps=this._fpsFrames/this._fpsAcc; this._fpsAcc=0; this._fpsFrames=0; }
-      this.update(dt); this.render(t/1000); this._telemetry();
-      requestAnimationFrame(loop);
-    };
-    requestAnimationFrame(loop);
-  }
+  start(){ let last=performance.now(); const loop=(t)=>{ let dt=(t-last)/1000; last=t; dt=Math.min(dt,0.05);
+    this._fa+=dt; this._ff++; if(this._fa>=0.5){ this.fps=this._ff/this._fa; this._fa=0; this._ff=0; }
+    this.update(dt); this.render(t/1000); this._hud(); requestAnimationFrame(loop); };
+    requestAnimationFrame(loop); }
 }
 
-/* ----------------------------- 부팅 ----------------------------- */
-const sim=new Simulation(document.getElementById("stage"));
-sim.start();
+const sim=new Simulation(document.getElementById("stage")); sim.start();
 </script>
 </body>
 </html>
